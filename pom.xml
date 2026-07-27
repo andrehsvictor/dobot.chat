@@ -94,6 +94,17 @@
         <maven.compiler.source>17</maven.compiler.source>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Força versão consistente do JUnit Platform para evitar conflito com yorm -->
+            <dependency>
+                <groupId>org.junit.platform</groupId>
+                <artifactId>junit-platform-commons</artifactId>
+                <version>1.11.4</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- https://mvnrepository.com/artifact/org.thymeleaf/thymeleaf -->
         <dependency>
@@ -135,6 +146,13 @@
             <groupId>org.yorm</groupId>
             <artifactId>yorm</artifactId>
             <version>0.0.8</version>
+            <exclusions>
+                <!-- yorm puxa junit-jupiter-api em scope=compile, gerando conflito de versão -->
+                <exclusion>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/com.h2database/h2 -->
@@ -158,7 +176,13 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.9.3</version>
+            <version>5.11.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.11.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -206,7 +230,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M7</version>
+                    <version>3.5.3</version>
                     <configuration>
                         <useModulePath>false</useModulePath>
                     </configuration>
