@@ -23,6 +23,7 @@ O DoBot depende de poucas bibliotecas, focando na simplicidade e funcionalidade.
 - Thymeleaf: Motor de templates utilizado para renderizar as páginas HTML do chatbot.
 - H2 Database: Banco de dados em memória utilizado para persistência.
 - Slf4j2: Para o registro de logs no sistema.
+- TelegramBots: Biblioteca para integração com bots Telegram via long polling.
 
 ## Início Rápido
 Para utilizar o DoBot em seu projeto, siga as instruções abaixo:
@@ -116,26 +117,41 @@ public void config(DoBotConfig config){
 }
 ```
 
-## Usando outro canal, como Telegram
+## Usando Telegram com long polling
 
-O núcleo do framework pode ser usado sem iniciar o servidor web. O adaptador do canal deve
-usar um identificador estável para cada conversa (por exemplo, o `chatId` do Telegram) e
-entregar cada resposta retornada pela chamada:
+O projeto já inclui a biblioteca `org.telegram:telegrambots`. Para iniciar um bot Telegram,
+crie o bot no `@BotFather`, defina o token em uma variável de ambiente e registre o bot:
 
 ```java
-DoBotChatApp app = DoBotChatApp.novoBot();
-DoBotRuntime runtime = app.carregarRuntime(8082);
+public class TelegramMain {
+   public static void main(String[] args) throws TelegramApiException {
+      String token = System.getenv("TELEGRAM_BOT_TOKEN");
+      DoBotChatApp app = DoBotChatApp.novoBot();
 
-List<String> respostas = runtime.processarMensagem(
-      "hello", String.valueOf(chatId), textoRecebido);
-for (String resposta : respostas) {
-   telegram.enviarMensagem(chatId, resposta);
+      app.startTelegram("hello", "nome_do_seu_bot", token);
+   }
 }
 ```
 
-Cada conversa possui estado e histórico próprios. O objeto `DoBotRuntime` não conhece
-Telegram, HTTP ou qualquer outro transporte, então o mesmo código pode ser usado em
-webhooks, polling ou aplicações de linha de comando.
+O método usa `DefaultBotSession` e permanece escutando updates por long polling. Cada
+`chatId` do Telegram é usado como uma conversa independente, preservando estado e histórico
+sem misturar usuários. Para configurar a porta do banco H2, use a sobrecarga:
+
+```java
+app.startTelegram("hello", "nome_do_seu_bot", token, 8082);
+```
+
+O núcleo também pode ser usado diretamente por outro adaptador através de
+`app.carregarRuntime()`, sem iniciar o servidor web.
+
+Um exemplo executável está em
+`chat.dobot.exemplos.telegram.TelegramHelloWorldBot`. No PowerShell, configure as
+variáveis e execute essa classe pela sua IDE:
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN = "token fornecido pelo BotFather"
+$env:TELEGRAM_BOT_USERNAME = "nome_do_seu_bot"
+```
 
 ## Configurando o Tema do Chatbot
 Você pode personalizar o tema do chatbot usando a classe `DoBotTema`. É possível configurar cores para o fundo da página, mensagens e texto.

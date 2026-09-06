@@ -8,6 +8,7 @@ import chat.dobot.bot.controller.DoBotController;
 import chat.dobot.bot.domain.DoBot;
 import chat.dobot.bot.persistance.YormConfig;
 import chat.dobot.bot.service.DoBotService;
+import chat.dobot.bot.telegram.DoBotTelegramBot;
 import chat.dobot.bot.utils.AnnotationsUtil;
 import chat.dobot.bot.utils.ConsoleUtil;
 import io.github.classgraph.ClassGraph;
@@ -22,6 +23,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 import org.yorm.Yorm;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -79,6 +83,20 @@ public class DoBotChatApp {
         }
         runtime = new DoBotRuntime(bots, inicializarPersistencia(yormConfig.getYorm()));
         return runtime;
+    }
+
+    /** Registra um bot DoBot no Telegram usando long polling. */
+    public DoBotTelegramBot startTelegram(String botId, String username, String token, int portaH2)
+            throws TelegramApiException {
+        DoBotTelegramBot telegramBot = new DoBotTelegramBot(carregarRuntime(portaH2), botId, username, token);
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+        telegramBotsApi.registerBot(telegramBot);
+        return telegramBot;
+    }
+
+    public DoBotTelegramBot startTelegram(String botId, String username, String token)
+            throws TelegramApiException {
+        return startTelegram(botId, username, token, 8082);
     }
 
     /**
