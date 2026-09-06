@@ -27,7 +27,7 @@ public class TelegramHelloWorldBot {
         }
 
         DoBotChatApp app = DoBotChatApp.novoBot();
-        app.ativarExemplos();
+        app.ativarBot("telegramHello");
         app.startTelegram("telegramHello", username, token);
     }
 

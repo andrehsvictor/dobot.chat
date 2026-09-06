@@ -144,6 +144,10 @@ app.startTelegram("hello", "nome_do_seu_bot", token, 8082);
 O núcleo também pode ser usado diretamente por outro adaptador através de
 `app.carregarRuntime()`, sem iniciar o servidor web.
 
+Quando houver vários exemplos ou bots anotados no mesmo classpath, use
+`app.ativarBot("id-do-bot")` para carregar somente um bot. `ativarExemplos()` continua
+disponível quando a intenção for carregar todos os exemplos.
+
 Um exemplo executável está em
 `chat.dobot.exemplos.telegram.TelegramHelloWorldBot`. No PowerShell, configure as
 variáveis e execute essa classe pela sua IDE:

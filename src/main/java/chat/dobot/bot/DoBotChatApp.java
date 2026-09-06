@@ -36,8 +36,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class DoBotChatApp {
 
@@ -46,6 +48,7 @@ public class DoBotChatApp {
     private final Logger logger = LoggerFactory.getLogger(DoBotChatApp.class);
 
     private boolean carregarExemplos = false;
+    private final Set<String> botsSelecionados = new LinkedHashSet<>();
     private DoBotRuntime runtime;
 
     private DoBotChatApp() {
@@ -62,6 +65,14 @@ public class DoBotChatApp {
 
     public void ativarExemplos() {
         carregarExemplos = true;
+    }
+
+    /** Carrega somente o bot informado, inclusive quando ele pertence ao pacote de exemplos. */
+    public void ativarBot(String botId) {
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("O identificador do bot não pode ser vazio");
+        }
+        botsSelecionados.add(botId);
     }
 
     /**
@@ -190,13 +201,20 @@ public class DoBotChatApp {
 
         try (ScanResult scanResult = new ClassGraph().enableAnnotationInfo().scan()) {
             for (Class<?> classe : scanResult.getClassesWithAnnotation(DoBotChat.class).loadClasses()) {
-                if (classe.getName().startsWith(PACOTE_EXEMPLOS) && !carregarExemplos) {
+                DoBotChat annotation = classe.getAnnotation(DoBotChat.class);
+                boolean botSelecionado = botsSelecionados.contains(annotation.id());
+                boolean exemplo = classe.getName().startsWith(PACOTE_EXEMPLOS);
+
+                if (!botsSelecionados.isEmpty() && !botSelecionado) {
                     continue;
-                } else {
+                }
+                if (exemplo && !carregarExemplos && !botSelecionado) {
+                    continue;
+                }
+                if (exemplo) {
                     ConsoleUtil.printConsole("Carregando exemplo: " + classe.getName());
                 }
                 Object instancia = classe.getDeclaredConstructor().newInstance();
-                DoBotChat annotation = classe.getAnnotation(DoBotChat.class);
                 if (annotation != null) {
                     String id = annotation.id();
                     String nome = annotation.nome();

@@ -13,6 +13,7 @@ public class CadastroProdutosBot {
 
     public static void main(String[] args) {
         DoBotChatApp meubot = DoBotChatApp.novoBot();
+        meubot.ativarBot("cadProdutos");
         meubot.start(8083,8084);
 
     }
