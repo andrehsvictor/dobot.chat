@@ -36,5 +36,19 @@ public class CadastroProdutosBot {
         chat.mudarEstado("opcao");
     }
 
+    @EstadoChat(estado = "opcao")
+    public void opcao(Contexto chat) {
+        switch (chat.getMensagemUsuario()) {
+            case "1" -> {
+                chat.responder("Alô Mundo!");
+                chat.mudarEstado("main");
+            }
+            case "2" -> {
+                chat.responder("Até logo!");
+                chat.mudarEstado("main");
+            }
+            default -> chat.responder("Opção inválida. Escolha 1 ou 2.");
+        }
+    }
 
 }

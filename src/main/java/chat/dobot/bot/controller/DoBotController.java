@@ -71,8 +71,10 @@ public class DoBotController {
         String estadoAtual = doBot.getEstadoAtual();
 
         String msgUsuario = ctx.formParam("msgUsuario");
-        if (msgUsuario == null)
-            throw new RuntimeException("Bug?! msg do usuário não deveria ser null!");
+        if (msgUsuario == null) {
+            ctx.status(400);
+            return;
+        }
 
         try {
             doBot.receberMensagem(new Contexto(msgUsuario, estadoAtual, servicos));
