@@ -3,11 +3,10 @@ package chat.dobot.bot.controller;
 import chat.dobot.bot.Autor;
 import chat.dobot.bot.DoBotException;
 import chat.dobot.bot.DoBotKey;
-import chat.dobot.bot.Contexto;
+import chat.dobot.bot.DoBotRuntime;
 import chat.dobot.bot.domain.DoBot;
 import chat.dobot.bot.domain.DoBotTema;
 import chat.dobot.bot.domain.EstadoInvalidoException;
-import chat.dobot.bot.service.DoBotService;
 import chat.dobot.bot.utils.ConsoleUtil;
 import io.javalin.http.Context;
 import org.slf4j.Logger;
@@ -24,7 +23,8 @@ public class DoBotController {
     }
 
     public void processarPaginaHome(Context ctx) {
-        Map<String, DoBot> bots = ctx.appData(DoBotKey.BOTS.key());
+        DoBotRuntime runtime = ctx.appData(DoBotKey.RUNTIME.key());
+        Map<String, DoBot> bots = runtime.getBots();
         Map<String, String> botNames = new HashMap<>();
         for (Map.Entry<String, DoBot> entry : bots.entrySet()) {
             botNames.put(entry.getKey(), entry.getValue().getNome());
@@ -40,13 +40,13 @@ public class DoBotController {
 
     private DoBot getBotFrom(Context ctx){
         String nomeBot = ctx.pathParam("botID");
-        Map<String, DoBot> bots = ctx.appData(DoBotKey.BOTS.key());
-        if(!bots.containsKey(nomeBot)){
+        DoBotRuntime runtime = ctx.appData(DoBotKey.RUNTIME.key());
+        if(!runtime.getBots().containsKey(nomeBot)){
             ConsoleUtil.printErro("BUG?! Bot não encontrado:"+nomeBot);
             throw new DoBotException("Bot não encontrado:"+nomeBot);
         }
         ctx.attribute("botID", nomeBot);
-        return bots.get(nomeBot);
+        return runtime.getConversa(nomeBot, "web");
     }
 
     /**
@@ -67,15 +67,13 @@ public class DoBotController {
      */
     public void processarPostPaginaChat(Context ctx) {
         DoBot doBot = getBotFrom(ctx);
-        Map<String, DoBotService<Record>> servicos = ctx.appData(DoBotKey.SERVICE.key());
-        String estadoAtual = doBot.getEstadoAtual();
-
         String msgUsuario = ctx.formParam("msgUsuario");
         if (msgUsuario == null)
             throw new RuntimeException("Bug?! msg do usuário não deveria ser null!");
 
         try {
-            doBot.receberMensagem(new Contexto(msgUsuario, estadoAtual, servicos));
+            DoBotRuntime runtime = ctx.appData(DoBotKey.RUNTIME.key());
+            runtime.processarMensagem(doBot.getId(), "web", msgUsuario);
         } catch (EstadoInvalidoException e){
             logger.debug("Erro no processamento da mensagem:",e);
             ConsoleUtil.printErro("Erro no processamento da mensagem!",e);

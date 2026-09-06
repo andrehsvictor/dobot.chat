@@ -116,6 +116,27 @@ public void config(DoBotConfig config){
 }
 ```
 
+## Usando outro canal, como Telegram
+
+O núcleo do framework pode ser usado sem iniciar o servidor web. O adaptador do canal deve
+usar um identificador estável para cada conversa (por exemplo, o `chatId` do Telegram) e
+entregar cada resposta retornada pela chamada:
+
+```java
+DoBotChatApp app = DoBotChatApp.novoBot();
+DoBotRuntime runtime = app.carregarRuntime(8082);
+
+List<String> respostas = runtime.processarMensagem(
+      "hello", String.valueOf(chatId), textoRecebido);
+for (String resposta : respostas) {
+   telegram.enviarMensagem(chatId, resposta);
+}
+```
+
+Cada conversa possui estado e histórico próprios. O objeto `DoBotRuntime` não conhece
+Telegram, HTTP ou qualquer outro transporte, então o mesmo código pode ser usado em
+webhooks, polling ou aplicações de linha de comando.
+
 ## Configurando o Tema do Chatbot
 Você pode personalizar o tema do chatbot usando a classe `DoBotTema`. É possível configurar cores para o fundo da página, mensagens e texto.
 

@@ -42,6 +42,7 @@ public class DoBotChatApp {
     private final Logger logger = LoggerFactory.getLogger(DoBotChatApp.class);
 
     private boolean carregarExemplos = false;
+    private DoBotRuntime runtime;
 
     private DoBotChatApp() {
     }
@@ -57,6 +58,27 @@ public class DoBotChatApp {
 
     public void ativarExemplos() {
         carregarExemplos = true;
+    }
+
+    /**
+     * Inicializa somente o núcleo do framework, sem iniciar servidor web.
+     * O identificador da conversa deve ser estável por usuário no adaptador escolhido.
+     */
+    public DoBotRuntime carregarRuntime() {
+        return carregarRuntime(8082);
+    }
+
+    public DoBotRuntime carregarRuntime(int portaH2) {
+        if (runtime != null) {
+            return runtime;
+        }
+        YormConfig yormConfig = new YormConfig(portaH2);
+        Map<String, DoBot> bots = carregarInstanciasChatbot();
+        if (bots.isEmpty()) {
+            throw new DoBotException("Nenhuma classe anotada com @DoBotChat foi encontrada");
+        }
+        runtime = new DoBotRuntime(bots, inicializarPersistencia(yormConfig.getYorm()));
+        return runtime;
     }
 
     /**
@@ -77,21 +99,15 @@ public class DoBotChatApp {
             ConsoleUtil.printYellow(getdoBotAsciiArt());
             ConsoleUtil.printYellow("DoBotChat v" + getApplicationVersion());
 
-            // Configuração do Yorm
-            YormConfig yormConfig = new YormConfig(portaH2);
-
-
-            // Carregar instâncias de chatbots
-            Map<String, DoBot> bots = carregarInstanciasChatbot();
-            if (bots.isEmpty())
-                throw new DoBotException("Nenhuma classe anotada com @DoBotChat foi encontrada");
+            DoBotRuntime runtime = carregarRuntime(portaH2);
+            Map<String, DoBot> bots = runtime.getBots();
 
             logger.debug(bots.size() + " chatBots instanciados: {}.", bots.keySet());
 
             // Inicializa o Javalin
             Javalin app = Javalin.create(config -> {
                 // Registra os serviços no contexto da aplicação
-                config.appData(DoBotKey.SERVICE.key(), inicializarPersistencia(yormConfig.getYorm()));
+                config.appData(DoBotKey.RUNTIME.key(), runtime);
 
                 config.staticFiles.add(staticFileConfig -> {
                     staticFileConfig.directory = "/WEB-INF/publico";
@@ -109,7 +125,6 @@ public class DoBotChatApp {
                 ctx.res().setContentType("text/html; charset=UTF-8");
             });
 
-            // TODO : inicializar controlador com a lista de bots
             DoBotController controlador = new DoBotController();
 
             app.get("/", controlador::processarPaginaHome);

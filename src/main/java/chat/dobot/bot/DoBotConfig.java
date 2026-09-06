@@ -16,6 +16,15 @@ public class DoBotConfig {
         this("", new DoBotTema());
     }
 
+    public DoBotConfig(DoBotConfig config) {
+        this(config.mensagemInicial, new DoBotTema(
+                config.tema.getCorFundoPagina(),
+                config.tema.getCorFundoChat(),
+                config.tema.getCorTextoChat(),
+                config.tema.getCorFundoMensagemUsuario(),
+                config.tema.getCorFundoMensagemBot()));
+    }
+
     public String getMensagemInicial() {
         return mensagemInicial;
     }

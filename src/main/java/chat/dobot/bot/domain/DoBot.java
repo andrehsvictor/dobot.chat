@@ -20,7 +20,7 @@ public class DoBot {
     private final List<Mensagem> mensagens = new LinkedList<>();
     private Map<String, BotStateMethod> estados;
     public static final String ESTADO_INICIAL = "main";
-    private final DoBotConfig doBotConfig;
+    private DoBotConfig doBotConfig;
    // TODO: verificar se é necessario
    // private String ultimaMensagemUsuario;
 
@@ -37,6 +37,16 @@ public class DoBot {
         this.descricao = descricao;
         this.doBotConfig = new DoBotConfig();
         estados = new HashMap<>();
+    }
+
+    /** Cria uma conversa independente, reutilizando a definição e os estados do bot. */
+    public DoBot novaConversa() {
+        DoBot conversa = new DoBot(id, nome, descricao);
+        conversa.doBotConfig = new DoBotConfig(doBotConfig);
+        conversa.estados = new HashMap<>(estados);
+        conversa.estadoAtual = estadoAtual;
+        conversa.mensagens.addAll(mensagens);
+        return conversa;
     }
 
     /**
