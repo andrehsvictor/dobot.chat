@@ -74,7 +74,7 @@ Os **estados** no chatbot servem para representar diferentes etapas ou fluxos de
 
 - **Estado Inicial**: Ponto de partida da conversa. Esse é o primeiro estado chamado quando o chatbot é iniciado.
 - **Estado de Ação**: Estados intermediários que lidam com interações específicas.
-- Para mudar de estado, você pode chamar o método `proximoEstado` do objeto `Contexto` passando o nome do próximo estado como parâmetro. O nome do estado deve ser o mesmo utilizado na anotação `@EstadoChat` ou o nome do método.
+- Para mudar de estado, você pode chamar o método `mudarEstado` do objeto `Contexto` passando o nome do próximo estado como parâmetro. O nome do estado deve ser o mesmo utilizado na anotação `@EstadoChat` ou o nome do método.
 
 Exemplo de fluxo de estados:
 
@@ -83,7 +83,7 @@ Exemplo de fluxo de estados:
 public void estadoInicial(Contexto contexto) {
     String msg = contexto.getMensagemUsuario();
     contexto.responder("Você disse: " + msg);
-    contexto.proximoEstado("novoEstado");
+   contexto.mudarEstado("novoEstado");
 }
 
 @EstadoChat
@@ -91,7 +91,7 @@ public void novoEstado(Contexto contexto) {
     contexto.responder("Este é o próximo estado.");
 }
 ```
-Observe que o estado inicial é definido com a anotação `@EstadoChat(inicial = true)` e o próximo estado é chamado com o método `proximoEstado`, passando o nome do próximo estado como parâmetro. No exemplo, o próximo estado é chamado de `novoEstado`).
+Observe que o estado inicial é definido com a anotação `@EstadoChat(inicial = true)` e o próximo estado é chamado com o método `mudarEstado`, passando o nome do próximo estado como parâmetro. No exemplo, o próximo estado é chamado de `novoEstado`.
 
 Isso significa que, após o usuário enviar uma mensagem no estado inicial, o chatbot responderá com a mensagem "Você disse: [mensagem do usuário]" e mudará para o estado `novoEstado`. Na próxima vez que o usuário enviar uma mensagem, o chatbot responderá com a mensagem "Este é o próximo estado."
 
@@ -121,11 +121,13 @@ Você pode personalizar o tema do chatbot usando a classe `DoBotTema`. É possí
 
 Exemplo de configuração do tema:
 ```java
-DoBotChatApp meubot = DoBotChatApp.novoBot();
-meubot.tema().setCorFundoPagina("#FFFFFF");
-meubot.tema().setCorFundoMensagemUsuario("#ADD8E6");
-meubot.tema().setCorFundoMensagemBot("#FFD700");
-meubot.tema().setCorTextoChat("#000000");
+@Config
+public void config(DoBotConfig config){
+   config.getTema().setCorFundoPagina("#FFFFFF");
+   config.getTema().setCorFundoMensagemUsuario("#ADD8E6");
+   config.getTema().setCorFundoMensagemBot("#FFD700");
+   config.getTema().setCorTextoChat("#000000");
+}
 ```
 
 ## Configurando a Mensagem Inicial e as Portas
@@ -134,7 +136,6 @@ Você pode configurar uma mensagem inicial e as portas onde o chatbot será exec
 Exemplo:
 ```java
 DoBotChatApp meubot = DoBotChatApp.novoBot();
-meubot.setMensagemInicial("Bem-vindo ao chatbot!");
 meubot.start(9090, 9092); // Porta 9090 para o chatbot e 9092 para o H2
 ```
 

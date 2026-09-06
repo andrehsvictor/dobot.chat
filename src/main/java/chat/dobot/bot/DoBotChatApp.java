@@ -66,11 +66,11 @@ public class DoBotChatApp {
      * @param portaH2    a porta do banco de dados H2
      */
     public void start(int portaDoBot, int portaH2) {
-        if (portaDoBot < 0 || portaH2 < 0) {
-            ConsoleUtil.printErro("As portas do DoBot e do banco de dados devem ser maiores que 0");
+        if (!portaValida(portaDoBot) || !portaValida(portaH2)) {
+            throw new IllegalArgumentException("As portas do DoBot e do banco de dados devem estar entre 1 e 65535");
         }
         if (portaDoBot == portaH2) {
-            ConsoleUtil.printErro("As portas do DoBot e do banco de dados devem ser diferentes. Exemplo: 8080 e 8082");
+            throw new IllegalArgumentException("As portas do DoBot e do banco de dados devem ser diferentes. Exemplo: 8080 e 8082");
         }
         try {
             //Imprime a logo e a versão do DoBotChat
@@ -122,6 +122,10 @@ public class DoBotChatApp {
             System.exit(1);
         }
 
+    }
+
+    private boolean portaValida(int porta) {
+        return porta >= 1 && porta <= 65535;
     }
 
     private ITemplateResolver templateResolver() {
