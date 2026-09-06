@@ -48,7 +48,8 @@ public class DoBotRuntime {
         DoBot conversa = getConversa(botId, conversationId);
         synchronized (conversa) {
             int mensagensAntes = conversa.getMensagens().size();
-            conversa.receberMensagem(new Contexto(mensagem, conversa.getEstadoAtual(), servicos));
+                conversa.receberMensagem(new Contexto(
+                    mensagem, conversa.getEstadoAtual(), servicos, conversa.getDados()));
 
             List<String> respostas = new ArrayList<>();
             conversa.getMensagens().subList(mensagensAntes, conversa.getMensagens().size()).stream()

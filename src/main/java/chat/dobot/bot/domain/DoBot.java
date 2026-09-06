@@ -18,6 +18,7 @@ public class DoBot {
     private static final Logger logger = LoggerFactory.getLogger(DoBot.class);
 
     private final List<Mensagem> mensagens = new LinkedList<>();
+    private final Map<String, Object> dados = new HashMap<>();
     private Map<String, BotStateMethod> estados;
     public static final String ESTADO_INICIAL = "main";
     private DoBotConfig doBotConfig;
@@ -180,6 +181,10 @@ public class DoBot {
 
     public List<String> getEstados() {
        return new LinkedList<>(this.estados.keySet());
+    }
+
+    public Map<String, Object> getDados() {
+        return dados;
     }
 
     public void addMensagem(Autor autor, String msg) {
