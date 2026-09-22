@@ -23,6 +23,7 @@ O DoBot depende de poucas bibliotecas, focando na simplicidade e funcionalidade.
 - Thymeleaf: Motor de templates utilizado para renderizar as páginas HTML do chatbot.
 - H2 Database: Banco de dados em memória utilizado para persistência.
 - Slf4j2: Para o registro de logs no sistema.
+- TelegramBots: Biblioteca para integração com bots Telegram via long polling.
 
 ## Início Rápido
 Para utilizar o DoBot em seu projeto, siga as instruções abaixo:
@@ -114,6 +115,46 @@ Exemplo de configuração:
 public void config(DoBotConfig config){
     config.setMensagemInicial("👋 Olá! Eu sou o chatbot Alô Mundo! Escreva qualquer coisa e responderei com 'Alô'.");
 }
+```
+
+## Usando Telegram com long polling
+
+O projeto já inclui a biblioteca `org.telegram:telegrambots`. Para iniciar um bot Telegram,
+crie o bot no `@BotFather`, defina o token em uma variável de ambiente e registre o bot:
+
+```java
+public class TelegramMain {
+   public static void main(String[] args) throws TelegramApiException {
+      String token = System.getenv("TELEGRAM_BOT_TOKEN");
+      DoBotChatApp app = DoBotChatApp.novoBot();
+
+      app.startTelegram("hello", "nome_do_seu_bot", token);
+   }
+}
+```
+
+O método usa `DefaultBotSession` e permanece escutando updates por long polling. Cada
+`chatId` do Telegram é usado como uma conversa independente, preservando estado e histórico
+sem misturar usuários. Para configurar a porta do banco H2, use a sobrecarga:
+
+```java
+app.startTelegram("hello", "nome_do_seu_bot", token, 8082);
+```
+
+O núcleo também pode ser usado diretamente por outro adaptador através de
+`app.carregarRuntime()`, sem iniciar o servidor web.
+
+Quando houver vários exemplos ou bots anotados no mesmo classpath, use
+`app.ativarBot("id-do-bot")` para carregar somente um bot. `ativarExemplos()` continua
+disponível quando a intenção for carregar todos os exemplos.
+
+Um exemplo executável está em
+`chat.dobot.exemplos.telegram.TelegramHelloWorldBot`. No PowerShell, configure as
+variáveis e execute essa classe pela sua IDE:
+
+```powershell
+$env:TELEGRAM_BOT_TOKEN = "token fornecido pelo BotFather"
+$env:TELEGRAM_BOT_USERNAME = "nome_do_seu_bot"
 ```
 
 ## Configurando o Tema do Chatbot

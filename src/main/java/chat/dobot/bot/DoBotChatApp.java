@@ -8,6 +8,7 @@ import chat.dobot.bot.controller.DoBotController;
 import chat.dobot.bot.domain.DoBot;
 import chat.dobot.bot.persistance.YormConfig;
 import chat.dobot.bot.service.DoBotService;
+import chat.dobot.bot.telegram.DoBotTelegramBot;
 import chat.dobot.bot.utils.AnnotationsUtil;
 import chat.dobot.bot.utils.ConsoleUtil;
 import io.github.classgraph.ClassGraph;
@@ -22,6 +23,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 import org.yorm.Yorm;
+import org.telegram.telegrambots.meta.TelegramBotsApi;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -32,8 +36,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class DoBotChatApp {
 
@@ -42,6 +48,8 @@ public class DoBotChatApp {
     private final Logger logger = LoggerFactory.getLogger(DoBotChatApp.class);
 
     private boolean carregarExemplos = false;
+    private final Set<String> botsSelecionados = new LinkedHashSet<>();
+    private DoBotRuntime runtime;
 
     private DoBotChatApp() {
     }
@@ -57,6 +65,49 @@ public class DoBotChatApp {
 
     public void ativarExemplos() {
         carregarExemplos = true;
+    }
+
+    /** Carrega somente o bot informado, inclusive quando ele pertence ao pacote de exemplos. */
+    public void ativarBot(String botId) {
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("O identificador do bot não pode ser vazio");
+        }
+        botsSelecionados.add(botId);
+    }
+
+    /**
+     * Inicializa somente o núcleo do framework, sem iniciar servidor web.
+     * O identificador da conversa deve ser estável por usuário no adaptador escolhido.
+     */
+    public DoBotRuntime carregarRuntime() {
+        return carregarRuntime(8082);
+    }
+
+    public DoBotRuntime carregarRuntime(int portaH2) {
+        if (runtime != null) {
+            return runtime;
+        }
+        YormConfig yormConfig = new YormConfig(portaH2);
+        Map<String, DoBot> bots = carregarInstanciasChatbot();
+        if (bots.isEmpty()) {
+            throw new DoBotException("Nenhuma classe anotada com @DoBotChat foi encontrada");
+        }
+        runtime = new DoBotRuntime(bots, inicializarPersistencia(yormConfig.getYorm()));
+        return runtime;
+    }
+
+    /** Registra um bot DoBot no Telegram usando long polling. */
+    public DoBotTelegramBot startTelegram(String botId, String username, String token, int portaH2)
+            throws TelegramApiException {
+        DoBotTelegramBot telegramBot = new DoBotTelegramBot(carregarRuntime(portaH2), botId, username, token);
+        TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
+        telegramBotsApi.registerBot(telegramBot);
+        return telegramBot;
+    }
+
+    public DoBotTelegramBot startTelegram(String botId, String username, String token)
+            throws TelegramApiException {
+        return startTelegram(botId, username, token, 8082);
     }
 
     /**
@@ -77,21 +128,15 @@ public class DoBotChatApp {
             ConsoleUtil.printYellow(getdoBotAsciiArt());
             ConsoleUtil.printYellow("DoBotChat v" + getApplicationVersion());
 
-            // Configuração do Yorm
-            YormConfig yormConfig = new YormConfig(portaH2);
-
-
-            // Carregar instâncias de chatbots
-            Map<String, DoBot> bots = carregarInstanciasChatbot();
-            if (bots.isEmpty())
-                throw new DoBotException("Nenhuma classe anotada com @DoBotChat foi encontrada");
+            DoBotRuntime runtime = carregarRuntime(portaH2);
+            Map<String, DoBot> bots = runtime.getBots();
 
             logger.debug(bots.size() + " chatBots instanciados: {}.", bots.keySet());
 
             // Inicializa o Javalin
             Javalin app = Javalin.create(config -> {
                 // Registra os serviços no contexto da aplicação
-                config.appData(DoBotKey.SERVICE.key(), inicializarPersistencia(yormConfig.getYorm()));
+                config.appData(DoBotKey.RUNTIME.key(), runtime);
 
                 config.staticFiles.add(staticFileConfig -> {
                     staticFileConfig.directory = "/WEB-INF/publico";
@@ -109,7 +154,6 @@ public class DoBotChatApp {
                 ctx.res().setContentType("text/html; charset=UTF-8");
             });
 
-            // TODO : inicializar controlador com a lista de bots
             DoBotController controlador = new DoBotController();
 
             app.get("/", controlador::processarPaginaHome);
@@ -161,13 +205,20 @@ public class DoBotChatApp {
 
         try (ScanResult scanResult = new ClassGraph().enableAnnotationInfo().scan()) {
             for (Class<?> classe : scanResult.getClassesWithAnnotation(DoBotChat.class).loadClasses()) {
-                if (classe.getName().startsWith(PACOTE_EXEMPLOS) && !carregarExemplos) {
+                DoBotChat annotation = classe.getAnnotation(DoBotChat.class);
+                boolean botSelecionado = botsSelecionados.contains(annotation.id());
+                boolean exemplo = classe.getName().startsWith(PACOTE_EXEMPLOS);
+
+                if (!botsSelecionados.isEmpty() && !botSelecionado) {
                     continue;
-                } else {
+                }
+                if (exemplo && !carregarExemplos && !botSelecionado) {
+                    continue;
+                }
+                if (exemplo) {
                     ConsoleUtil.printConsole("Carregando exemplo: " + classe.getName());
                 }
                 Object instancia = classe.getDeclaredConstructor().newInstance();
-                DoBotChat annotation = classe.getAnnotation(DoBotChat.class);
                 if (annotation != null) {
                     String id = annotation.id();
                     String nome = annotation.nome();

@@ -8,7 +8,8 @@ import java.util.Map;
 
 public enum DoBotKey {
     SERVICE(new Key<Map<String, DoBotService<Record>>>("service")),
-    BOTS(new Key<Map<String, Map<String, DoBot>>>("bots")),;
+    BOTS(new Key<Map<String, DoBot>>("bots")),
+    RUNTIME(new Key<DoBotRuntime>("runtime")),;
 
     private final Key<?> k;
 

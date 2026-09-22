@@ -13,14 +13,21 @@ public class Contexto {
     private String estado;
     private final List<String> respostas;
     private final Map<String, DoBotService<Record>> servicos;
+    private final Map<String, Object> dados;
 
     public Contexto(String mensagemUsuario, String estado, Map<String, DoBotService<Record>> servicos) {
+        this(mensagemUsuario, estado, servicos, new java.util.HashMap<>());
+    }
+
+    public Contexto(String mensagemUsuario, String estado, Map<String, DoBotService<Record>> servicos,
+                    Map<String, Object> dados) {
         this.mensagemUsuario = mensagemUsuario;
         if (estado == null) {
             throw new IllegalArgumentException("O estado não pode ser nulo!");
         }
         this.estado = estado.toLowerCase(Locale.ROOT);
         this.servicos = servicos;
+        this.dados = dados;
         respostas = new ArrayList<>(20);
     }
 
@@ -33,8 +40,8 @@ public class Contexto {
     }
 
     public void mudarEstado(String estado) {
-        if (estado == null) {
-            throw new IllegalArgumentException("O estado não pode ser nulo!");
+        if (estado == null || estado.isBlank()) {
+            throw new IllegalArgumentException("O estado não pode ser vazio");
         }
         this.estado = estado.toLowerCase(Locale.ROOT);
     }
@@ -45,6 +52,18 @@ public class Contexto {
 
     public List<String> getRespostas() {
         return respostas;
+    }
+
+    public void armazenar(String chave, Object valor) {
+        dados.put(chave, valor);
+    }
+
+    public Object obter(String chave) {
+        return dados.get(chave);
+    }
+
+    public void remover(String chave) {
+        dados.remove(chave);
     }
 
     public <T extends Record> DoBotService<T> getServico(Class<T> recordClass) {

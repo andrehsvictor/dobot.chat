@@ -12,7 +12,7 @@ public class HelloWorldBot {
 
     public static void main(String[] args) {
         DoBotChatApp meubot = DoBotChatApp.novoBot();
-        meubot.ativarExemplos();
+        meubot.ativarBot("hello");
         meubot.start(8083,8084);
     }
 
