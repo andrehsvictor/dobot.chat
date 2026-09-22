@@ -96,7 +96,7 @@ Observe que o estado inicial é definido com a anotação `@EstadoChat(inicial =
 
 Isso significa que, após o usuário enviar uma mensagem no estado inicial, o chatbot responderá com a mensagem "Você disse: [mensagem do usuário]" e mudará para o estado `novoEstado`. Na próxima vez que o usuário enviar uma mensagem, o chatbot responderá com a mensagem "Este é o próximo estado."
 
-Você pode usar estados para tratar opções de menus, por exemplo. Veja os exemplos disponíveis no pacote `chat.dobot.exemplos`.
+Você pode usar estados para tratar opções de menus, por exemplo. Veja os exemplos disponíveis no pacote `chat.dobot.exemplos`, incluindo `agendamentos.AgendamentoBot` (cadastro, alteração e cancelamento com persistência no banco).
 
 ### Anotações @Entidade e @Id (opcionais)
 
