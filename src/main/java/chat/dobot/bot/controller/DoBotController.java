@@ -68,8 +68,10 @@ public class DoBotController {
     public void processarPostPaginaChat(Context ctx) {
         DoBot doBot = getBotFrom(ctx);
         String msgUsuario = ctx.formParam("msgUsuario");
-        if (msgUsuario == null)
-            throw new RuntimeException("Bug?! msg do usuário não deveria ser null!");
+        if (msgUsuario == null) {
+            ctx.status(400);
+            return;
+        }
 
         try {
             DoBotRuntime runtime = ctx.appData(DoBotKey.RUNTIME.key());

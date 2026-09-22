@@ -4,6 +4,7 @@ import chat.dobot.bot.service.DoBotService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class Contexto {
@@ -21,7 +22,10 @@ public class Contexto {
     public Contexto(String mensagemUsuario, String estado, Map<String, DoBotService<Record>> servicos,
                     Map<String, Object> dados) {
         this.mensagemUsuario = mensagemUsuario;
-        this.estado = estado.toLowerCase();
+        if (estado == null) {
+            throw new IllegalArgumentException("O estado não pode ser nulo!");
+        }
+        this.estado = estado.toLowerCase(Locale.ROOT);
         this.servicos = servicos;
         this.dados = dados;
         respostas = new ArrayList<>(20);
@@ -39,7 +43,7 @@ public class Contexto {
         if (estado == null || estado.isBlank()) {
             throw new IllegalArgumentException("O estado não pode ser vazio");
         }
-        this.estado = estado.toLowerCase();
+        this.estado = estado.toLowerCase(Locale.ROOT);
     }
 
     public void responder(String resposta) {
