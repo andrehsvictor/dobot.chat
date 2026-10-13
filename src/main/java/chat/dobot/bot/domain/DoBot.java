@@ -66,6 +66,9 @@ public class DoBot {
      * @param contexto contexto do chat
      */
     private void adicionarMensagens(Contexto contexto) {
+        if (!doBotConfig.isArmazenarMensagensEmMemoria()) {
+            return;
+        }
         if (contexto.getMensagemUsuario() != null) {
             mensagens.add(new Mensagem(Autor.USUARIO, contexto.getMensagemUsuario()));
         }
@@ -75,7 +78,16 @@ public class DoBot {
     }
 
     public void setMensagemInicial(String mensagemInicial){
-        this.mensagens.add(new Mensagem(Autor.BOT, mensagemInicial));
+        if (doBotConfig.isArmazenarMensagensEmMemoria() && mensagemInicial != null && !mensagemInicial.isBlank()) {
+            this.mensagens.add(new Mensagem(Autor.BOT, mensagemInicial));
+        }
+    }
+
+    /**
+     * Limpa a lista de mensagens em memória do chat.
+     */
+    public void limparMensagens() {
+        this.mensagens.clear();
     }
 
     /**
@@ -173,6 +185,8 @@ public class DoBot {
     }
 
     public void addMensagem(Autor autor, String msg) {
-        mensagens.add(new Mensagem(autor, msg));
+        if (doBotConfig.isArmazenarMensagensEmMemoria()) {
+            mensagens.add(new Mensagem(autor, msg));
+        }
     }
 }

@@ -37,9 +37,6 @@ import chat.dobot.bot.telegram.DoBotTelegramApp;
 @DoBotChat(id = "adivinhaNumero", nome = "🎲 Adivinha o Número", descricao = "Bot que desafia o usuário a adivinhar um número entre 1 e 10")
 public class AdivinhaNumeroBot {
 
-    /** Número secreto que o bot escolhe no início de cada rodada */
-    private int numeroSecreto = gerarNumero();
-
     public static void main(String[] args) {
         DoBotTelegramApp.novoBot()
                 .token("SEU_TOKEN_AQUI") // <-- substitua pelo token do BotFather
@@ -54,22 +51,26 @@ public class AdivinhaNumeroBot {
         config.setMensagemInicial(
                 "🎲 Bem-vindo ao jogo de Adivinha o Número!\n" +
                         "Estou pensando em um número entre 1 e 10.\n" +
-                        "Você consegue adivinhar? Digite qualquer coisa para começar!");
+                        "Você consegue adivinhar?");
     }
 
     /**
-     * Estado inicial: apresenta o desafio e pede um palpite.
+     * Estado inicial: sorteia o número secreto para este usuário e pede um palpite.
+     * O número é armazenado no contexto da sessão do usuário, garantindo que
+     * cada jogador tenha seu próprio jogo isolado.
      */
     @EstadoChat(inicial = true)
     public void main(Contexto ctx) {
-        numeroSecreto = gerarNumero();
+        int numeroSecreto = gerarNumero();
+        ctx.setDado("numeroSecreto", numeroSecreto);
         ctx.responder("🤔 Estou pensando em um número entre 1 e 10...");
         ctx.responder("Qual é o seu palpite?");
         ctx.mudarEstado("adivinhar");
     }
 
     /**
-     * Estado de recepção do palpite: verifica se o usuário acertou.
+     * Estado de recepção do palpite: valida o palpite contra o número secreto do
+     * usuário.
      */
     @EstadoChat(estado = "adivinhar")
     public void adivinhar(Contexto ctx) {
@@ -88,6 +89,12 @@ public class AdivinhaNumeroBot {
             return;
         }
 
+        Integer numeroSecreto = ctx.getDado("numeroSecreto", Integer.class);
+        if (numeroSecreto == null) {
+            numeroSecreto = gerarNumero();
+            ctx.setDado("numeroSecreto", numeroSecreto);
+        }
+
         if (palpite == numeroSecreto) {
             ctx.responder("🎉 Parabéns! Você acertou! O número era " + numeroSecreto + "!");
         } else if (palpite < numeroSecreto) {
@@ -96,7 +103,8 @@ public class AdivinhaNumeroBot {
             ctx.responder("📉 Quase! O número secreto é MENOR que " + palpite + ".");
         }
 
-        ctx.responder("Quer jogar novamente? Digite 'sim' para recomeçar ou qualquer outra coisa para sair.");
+        // Exibe botões interativos no Telegram
+        ctx.responderComBotoes("Quer jogar novamente?", "Sim", "Não");
         ctx.mudarEstado("resultado");
     }
 
@@ -108,12 +116,15 @@ public class AdivinhaNumeroBot {
         String resposta = ctx.getMensagemUsuario().trim().toLowerCase();
 
         if (resposta.equals("sim") || resposta.equals("s") || resposta.equals("yes")) {
-            numeroSecreto = gerarNumero();
-            ctx.responder("🎲 Nova rodada! Estou pensando em um novo número entre 1 e 10...");
+            int novoNumero = gerarNumero();
+            ctx.setDado("numeroSecreto", novoNumero);
+            ctx.removerTeclado("🎲 Nova rodada! Estou pensando em um novo número entre 1 e 10...");
             ctx.responder("Qual é o seu palpite?");
             ctx.mudarEstado("adivinhar");
         } else {
-            ctx.responder("👋 Obrigado por jogar! Até a próxima!\nDigite qualquer coisa para começar um novo jogo.");
+            ctx.removerDado("numeroSecreto");
+            ctx.removerTeclado(
+                    "👋 Obrigado por jogar! Até a próxima!\nEnvie /start para começar um novo jogo a qualquer momento.");
             ctx.mudarEstado("main");
         }
     }

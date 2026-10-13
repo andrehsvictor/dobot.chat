@@ -24,24 +24,30 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Ponto de entrada para criar um chatbot DoBot integrado ao Telegram via Long Polling.
+ * Ponto de entrada para criar um chatbot DoBot integrado ao Telegram via Long
+ * Polling.
  *
- * <p>Esta classe é o espelho de {@link chat.dobot.bot.DoBotChatApp} para o canal Telegram.
- * Ela reutiliza o mesmo motor de estados do DoBot (anotações {@code @DoBotChat},
- * {@code @EstadoChat} e {@code @Config}), mas em vez de iniciar um servidor Javalin/HTTP,
+ * <p>
+ * Esta classe é o espelho de {@link chat.dobot.bot.DoBotChatApp} para o canal
+ * Telegram.
+ * Ela reutiliza o mesmo motor de estados do DoBot (anotações
+ * {@code @DoBotChat},
+ * {@code @EstadoChat} e {@code @Config}), mas em vez de iniciar um servidor
+ * Javalin/HTTP,
  * registra o bot na API do Telegram usando Long Polling.
  *
  * <h2>Uso básico</h2>
+ * 
  * <pre>{@code
  * @DoBotChat(id = "meubot", nome = "Meu Bot Telegram")
  * public class MeuBotTelegram {
  *
  *     public static void main(String[] args) {
  *         DoBotTelegramApp.novoBot()
- *             .token("SEU_TOKEN_AQUI")
- *             .username("seu_bot_username")
- *             .ativarExemplos()   // opcional: carrega bots de exemplo do pacote chat.dobot
- *             .start();
+ *                 .token("SEU_TOKEN_AQUI")
+ *                 .username("seu_bot_username")
+ *                 .ativarExemplos() // opcional: carrega bots de exemplo do pacote chat.dobot
+ *                 .start();
  *     }
  *
  *     @Config
@@ -56,9 +62,13 @@ import java.util.Map;
  * }
  * }</pre>
  *
- * <p><strong>Atenção:</strong> ao contrário do {@link chat.dobot.bot.DoBotChatApp}, que mantém
- * um único estado compartilhado por bot (sessão HTTP), esta implementação gerencia o estado
- * de forma <em>independente por usuário</em> (chatId do Telegram). Isso significa que cada
+ * <p>
+ * <strong>Atenção:</strong> ao contrário do
+ * {@link chat.dobot.bot.DoBotChatApp}, que mantém
+ * um único estado compartilhado por bot (sessão HTTP), esta implementação
+ * gerencia o estado
+ * de forma <em>independente por usuário</em> (chatId do Telegram). Isso
+ * significa que cada
  * usuário do Telegram tem sua própria sessão de conversa isolada.
  */
 public class DoBotTelegramApp {
@@ -70,6 +80,7 @@ public class DoBotTelegramApp {
     private String username;
     private boolean carregarExemplos = false;
     private Class<?> botClass = null;
+    private Object botInstance = null;
 
     private DoBotTelegramApp() {
     }
@@ -120,16 +131,18 @@ public class DoBotTelegramApp {
      * Especifica explicitamente qual classe anotada com {@code @DoBotChat} deve ser
      * instanciada como bot do Telegram.
      *
-     * <p>Isso é necessário quando há mais de uma classe {@code @DoBotChat} no classpath
+     * <p>
+     * Isso é necessário quando há mais de uma classe {@code @DoBotChat} no
+     * classpath
      * (por exemplo, quando {@link #ativarExemplos()} está ativo), pois a ordem de
      * descoberta pelo classgraph é não-determinística.
      *
      * <pre>{@code
      * DoBotTelegramApp.novoBot()
-     *     .token("...")
-     *     .username("...")
-     *     .botClass(AdivinhaNumeroBot.class)
-     *     .start();
+     *         .token("...")
+     *         .username("...")
+     *         .botClass(AdivinhaNumeroBot.class)
+     *         .start();
      * }</pre>
      *
      * @param botClass classe anotada com {@code @DoBotChat} a ser usada
@@ -141,12 +154,46 @@ public class DoBotTelegramApp {
     }
 
     /**
+     * Especifica explicitamente uma instância já construída do chatbot anotado com
+     * {@code @DoBotChat}.
+     *
+     * <p>
+     * Ideal para:
+     * <ul>
+     * <li>Projetos que utilizam injeção de dependências (Spring, Micronaut, Guice,
+     * etc.);</li>
+     * <li>Chatbots cujos construtores recebem serviços, repositórios ou dados de
+     * configuração;</li>
+     * <li>Testes rápidos onde a instância já foi inicializada localmente.</li>
+     * </ul>
+     *
+     * <pre>{@code
+     * MeuBot meuBot = new MeuBot(meuRepositorio, meuServico);
+     * DoBotTelegramApp.novoBot()
+     *         .token("...")
+     *         .username("...")
+     *         .bot(meuBot)
+     *         .start();
+     * }</pre>
+     *
+     * @param botInstance objeto anotado com {@code @DoBotChat}
+     * @return esta instância (fluent API)
+     */
+    public DoBotTelegramApp bot(Object botInstance) {
+        this.botInstance = botInstance;
+        return this;
+    }
+
+    /**
      * Inicializa o bot Telegram com Long Polling.
      *
-     * <p>Este método bloqueia enquanto o bot estiver em execução.
+     * <p>
+     * Este método bloqueia enquanto o bot estiver em execução.
      *
-     * @throws DoBotException se o token ou username não estiver configurado, se nenhuma classe
-     *                        {@code @DoBotChat} for encontrada, ou se ocorrer erro ao iniciar o bot
+     * @throws DoBotException se o token ou username não estiver configurado, se
+     *                        nenhuma classe
+     *                        {@code @DoBotChat} for encontrada, ou se ocorrer erro
+     *                        ao iniciar o bot
      */
     public void start() {
         if (token == null || token.isBlank()) {
@@ -185,23 +232,35 @@ public class DoBotTelegramApp {
     }
 
     /**
-     * Escaneia o classpath procurando por uma classe anotada com {@code @DoBotChat},
-     * instancia-a e constrói o {@link DoBot} correspondente com todos os seus estados.
+     * Escaneia o classpath procurando por uma classe anotada com
+     * {@code @DoBotChat},
+     * instancia-a e constrói o {@link DoBot} correspondente com todos os seus
+     * estados.
      *
-     * <p>Se {@link #botClass} foi definido via {@link #botClass(Class)}, apenas aquela classe
-     * é utilizada. Caso contrário, a primeira elegível encontrada no classpath é usada.
+     * <p>
+     * Se {@link #botClass} foi definido via {@link #botClass(Class)}, apenas aquela
+     * classe
+     * é utilizada. Caso contrário, a primeira elegível encontrada no classpath é
+     * usada.
      *
      * @return o bot carregado e pronto para uso
-     * @throws DoBotException se nenhuma classe adequada for encontrada ou houver erro na instância
+     * @throws DoBotException se nenhuma classe adequada for encontrada ou houver
+     *                        erro na instância
      */
-    private DoBot carregarInstanciaChatbot() {
+    DoBot carregarInstanciaChatbot() {
         ConsoleUtil.printConsole("Carregando chatbot para o Telegram...");
 
-        // Se a classe do bot foi especificada explicitamente, usa-a diretamente
+        // 1. Se uma instância pronta do bot foi informada, usa-a diretamente
+        if (botInstance != null) {
+            return configurarBot(botInstance);
+        }
+
+        // 2. Se a classe do bot foi especificada explicitamente, instancia-a
         if (botClass != null) {
             return instanciarBot(botClass);
         }
 
+        // 3. Caso contrário, escaneia o classpath procurando por classes @DoBotChat
         try (ScanResult scanResult = new ClassGraph().enableAnnotationInfo().scan()) {
             for (Class<?> classe : scanResult.getClassesWithAnnotation(DoBotChat.class).loadClasses()) {
                 if (classe.getName().startsWith(PACOTE_EXEMPLOS) && !carregarExemplos) {
@@ -225,25 +284,46 @@ public class DoBotTelegramApp {
     }
 
     /**
-     * Instancia um {@link DoBot} a partir de uma classe anotada com {@code @DoBotChat}.
+     * Configura um {@link DoBot} a partir de uma instância já existente anotada com
+     * {@code @DoBotChat}.
      *
-     * @param classe a classe a ser instanciada
+     * @param instancia o objeto do chatbot
      * @return o bot configurado e pronto para uso
-     * @throws DoBotException se a classe não possuir a anotação ou houver erro na instanciação
+     * @throws DoBotException se a classe do objeto não possuir a
+     *                        anotação @DoBotChat
      */
-    private DoBot instanciarBot(Class<?> classe) {
+    DoBot configurarBot(Object instancia) {
+        if (instancia == null) {
+            throw new DoBotException("A instância do bot não pode ser nula!");
+        }
+        Class<?> classe = instancia.getClass();
         DoBotChat annotation = classe.getAnnotation(DoBotChat.class);
         if (annotation == null) {
             throw new DoBotException("A classe " + classe.getName() + " não possui a anotação @DoBotChat!");
         }
+        DoBot doBot = new DoBot(annotation.id(), annotation.nome(), annotation.descricao());
+        doBot.getConfig().setArmazenarMensagensEmMemoria(false);
+        ConsoleUtil.printConsole("\n💬⚙️ Carregando chatbot '" + annotation.nome() + "'(" + annotation.id() + ")...");
+        varrerMetodos(doBot, instancia);
+        ConsoleUtil.printConsole("💬⚙️ Estados: " + doBot.getEstados().toString());
+        ConsoleUtil.printConsole(
+                "💬✅ Chatbot '" + annotation.nome() + "'(" + annotation.id() + ") carregado com sucesso!");
+        return doBot;
+    }
+
+    /**
+     * Instancia um {@link DoBot} a partir de uma classe anotada com
+     * {@code @DoBotChat}.
+     *
+     * @param classe a classe a ser instanciada
+     * @return o bot configurado e pronto para uso
+     * @throws DoBotException se a classe não possuir a anotação ou houver erro na
+     *                        instanciação
+     */
+    private DoBot instanciarBot(Class<?> classe) {
         try {
             Object instancia = classe.getDeclaredConstructor().newInstance();
-            DoBot doBot = new DoBot(annotation.id(), annotation.nome(), annotation.descricao());
-            ConsoleUtil.printConsole("\n💬⚙️ Carregando chatbot '" + annotation.nome() + "'(" + annotation.id() + ")...");
-            varrerMetodos(doBot, instancia);
-            ConsoleUtil.printConsole("💬⚙️ Estados: " + doBot.getEstados().toString());
-            ConsoleUtil.printConsole("💬✅ Chatbot '" + annotation.nome() + "'(" + annotation.id() + ") carregado com sucesso!");
-            return doBot;
+            return configurarBot(instancia);
         } catch (DoBotException e) {
             throw e;
         } catch (Exception e) {
@@ -252,7 +332,8 @@ public class DoBotTelegramApp {
     }
 
     /**
-     * Varre os métodos da classe anotada com {@code @DoBotChat}, mapeando estados e configuração.
+     * Varre os métodos da classe anotada com {@code @DoBotChat}, mapeando estados e
+     * configuração.
      *
      * @param bot         instância do {@link DoBot} a ser configurada
      * @param chatbotImpl objeto do usuário dev que contém as anotações
@@ -267,7 +348,8 @@ public class DoBotTelegramApp {
                 try {
                     metodo.invoke(chatbotImpl, bot.getConfig());
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    throw new DoBotException("Problema ao executar o método de configuração do bot. Método: " + metodo.getName(), e);
+                    throw new DoBotException(
+                            "Problema ao executar o método de configuração do bot. Método: " + metodo.getName(), e);
                 }
                 bot.setMensagemInicial(bot.getConfig().getMensagemInicial());
             }
@@ -282,7 +364,8 @@ public class DoBotTelegramApp {
                     try {
                         metodo.invoke(chatbotImpl, contexto);
                     } catch (IllegalAccessException | InvocationTargetException e) {
-                        throw new DoBotException("Problema ao executar o estado '" + nomeEstado + "', método: " + metodo.getName(), e);
+                        throw new DoBotException(
+                                "Problema ao executar o estado '" + nomeEstado + "', método: " + metodo.getName(), e);
                     }
                 });
             }
@@ -311,7 +394,8 @@ public class DoBotTelegramApp {
     private String getNomeEstado(Method metodo) {
         EstadoChat estadoChat = metodo.getAnnotation(EstadoChat.class);
         if (estadoChat == null) {
-            throw new IllegalArgumentException("BUG! Método " + metodo.getName() + " deveria possuir anotação @EstadoChat!");
+            throw new IllegalArgumentException(
+                    "BUG! Método " + metodo.getName() + " deveria possuir anotação @EstadoChat!");
         }
         if (estadoChat.inicial()) {
             return DoBot.ESTADO_INICIAL;
@@ -331,10 +415,10 @@ public class DoBotTelegramApp {
 
     private String getdoBotAsciiArt() {
         return """
-                  ____        ____        _         _           _   
-                 |  _ \\  ___ | __ )  ___ | |_   ___| |__   __ _| |_ 
+                  ____        ____        _         _           _
+                 |  _ \\  ___ | __ )  ___ | |_   ___| |__   __ _| |_
                  | | | |/ _ \\|  _ \\ / _ \\| __| / __| '_ \\ / _` | __|
-                 | |_| | (_) | |_) | (_) | |_ | (__| | | | (_| | |_ 
+                 | |_| | (_) | |_) | (_) | |_ | (__| | | | (_| | |_
                  |____/ \\___/|____/ \\___/ \\__(_)___|_| |_|\\__,_|\\__|
                 """;
     }

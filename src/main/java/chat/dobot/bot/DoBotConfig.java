@@ -6,10 +6,12 @@ public class DoBotConfig {
 
     private String mensagemInicial;
     private DoBotTema tema;
+    private boolean armazenarMensagensEmMemoria = true;
 
     public DoBotConfig(String mensagemInicial, DoBotTema tema) {
         this.mensagemInicial = mensagemInicial;
         this.tema = tema;
+        this.armazenarMensagensEmMemoria = true;
     }
 
     public DoBotConfig() {
@@ -27,4 +29,13 @@ public class DoBotConfig {
     public DoBotTema getTema() {
         return tema;
     }
+
+    public boolean isArmazenarMensagensEmMemoria() {
+        return armazenarMensagensEmMemoria;
+    }
+
+    public void setArmazenarMensagensEmMemoria(boolean armazenarMensagensEmMemoria) {
+        this.armazenarMensagensEmMemoria = armazenarMensagensEmMemoria;
+    }
 }
+
