@@ -224,7 +224,7 @@ class TelegramBotAdapter extends TelegramLongPollingBot {
      */
     private void enviarRespostas(long chatId, Contexto contexto) {
         List<String> respostas = contexto.getRespostas();
-        ReplyKeyboard teclado = contexto.getTeclado();
+        ReplyKeyboard teclado = contexto.getTeclado() instanceof ReplyKeyboard rk ? rk : null;
 
         for (int i = 0; i < respostas.size(); i++) {
             String resposta = respostas.get(i);

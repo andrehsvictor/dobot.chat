@@ -1,10 +1,6 @@
 package chat.dobot.bot;
 
 import chat.dobot.bot.service.DoBotService;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,7 +14,7 @@ public class Contexto {
     private final List<String> respostas;
     private final Map<String, DoBotService<Record>> servicos;
     private final Map<String, Object> dados;
-    private ReplyKeyboard teclado;
+    private Object teclado;
 
     public Contexto(String mensagemUsuario, String estado, Map<String, DoBotService<Record>> servicos) {
         this(mensagemUsuario, estado, servicos, new HashMap<>());
@@ -163,29 +159,21 @@ public class Contexto {
     // ── Suporte a Teclado / Botões (Telegram ReplyKeyboardMarkup) ────────────
 
     /**
-     * Adiciona uma resposta com um teclado customizado (Telegram ReplyKeyboardMarkup ou ReplyKeyboardRemove).
+     * Adiciona uma resposta com um teclado customizado (objeto de teclado do Telegram).
      *
      * @param resposta mensagem de texto a enviar
      * @param teclado  teclado a ser exibido junto à resposta
      */
-    public void responder(String resposta, ReplyKeyboard teclado) {
+    public void responder(String resposta, Object teclado) {
         responder(resposta);
         this.teclado = teclado;
     }
 
     /**
-     * Adiciona uma resposta associada a um teclado {@link ReplyKeyboardMarkup}.
-     *
-     * @param resposta mensagem de texto a enviar
-     * @param teclado  teclado do Telegram
-     */
-    public void responderComTeclado(String resposta, ReplyKeyboardMarkup teclado) {
-        responder(resposta, teclado);
-    }
-
-    /**
      * Responde com botões de teclado personalizados (ReplyKeyboardMarkup).
      * Os botões são dispostos automaticamente em linhas (até 3 botões por linha).
+     *
+     * <p>Requer que a biblioteca {@code telegrambots} esteja no classpath.
      *
      * @param resposta mensagem de texto a enviar
      * @param botoes   rótulos dos botões
@@ -195,23 +183,7 @@ public class Contexto {
         if (botoes == null || botoes.length == 0) {
             return;
         }
-        List<KeyboardRow> rows = new ArrayList<>();
-        int maxPorLinha = botoes.length <= 4 ? botoes.length : 3;
-        KeyboardRow linhaAtual = new KeyboardRow();
-        for (String botao : botoes) {
-            if (linhaAtual.size() >= maxPorLinha) {
-                rows.add(linhaAtual);
-                linhaAtual = new KeyboardRow();
-            }
-            linhaAtual.add(botao);
-        }
-        if (!linhaAtual.isEmpty()) {
-            rows.add(linhaAtual);
-        }
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup(rows);
-        markup.setResizeKeyboard(true);
-        markup.setOneTimeKeyboard(true);
-        this.teclado = markup;
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarTecladoBotoes(botoes);
     }
 
     /**
@@ -235,26 +207,24 @@ public class Contexto {
         if (gradeBotoes == null || gradeBotoes.isEmpty()) {
             return;
         }
-        List<KeyboardRow> rows = new ArrayList<>();
-        for (List<String> linha : gradeBotoes) {
-            if (linha == null || linha.isEmpty()) continue;
-            KeyboardRow keyboardRow = new KeyboardRow();
-            for (String textoBotao : linha) {
-                keyboardRow.add(textoBotao);
-            }
-            rows.add(keyboardRow);
-        }
-        ReplyKeyboardMarkup markup = new ReplyKeyboardMarkup(rows);
-        markup.setResizeKeyboard(true);
-        markup.setOneTimeKeyboard(true);
-        this.teclado = markup;
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarTecladoGrade(gradeBotoes);
     }
 
-    public void setTeclado(ReplyKeyboard teclado) {
+    /**
+     * Define o teclado a ser enviado junto à próxima resposta.
+     *
+     * @param teclado objeto de teclado (ex: ReplyKeyboardMarkup, InlineKeyboardMarkup)
+     */
+    public void setTeclado(Object teclado) {
         this.teclado = teclado;
     }
 
-    public ReplyKeyboard getTeclado() {
+    /**
+     * Retorna o teclado configurado para a próxima resposta.
+     *
+     * @return o teclado, ou {@code null} se nenhum foi configurado
+     */
+    public Object getTeclado() {
         return teclado;
     }
 
@@ -265,14 +235,14 @@ public class Contexto {
      */
     public void removerTeclado(String resposta) {
         responder(resposta);
-        this.teclado = new ReplyKeyboardRemove(true);
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarRemocaoTeclado();
     }
 
     /**
      * Configura a remoção do teclado customizado ativo.
      */
     public void removerTeclado() {
-        this.teclado = new ReplyKeyboardRemove(true);
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarRemocaoTeclado();
     }
 
     // ── Suporte a Teclados Inline (InlineKeyboardMarkup) ─────────────────────
@@ -283,7 +253,7 @@ public class Contexto {
      * @param resposta      mensagem de texto a enviar
      * @param tecladoInline teclado inline do Telegram
      */
-    public void responderComTecladoInline(String resposta, org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup tecladoInline) {
+    public void responderComTecladoInline(String resposta, Object tecladoInline) {
         responder(resposta);
         this.teclado = tecladoInline;
     }
@@ -299,25 +269,7 @@ public class Contexto {
         if (botoes == null || botoes.length == 0) {
             return;
         }
-        List<List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton>> rows = new ArrayList<>();
-        int maxPorLinha = botoes.length <= 4 ? botoes.length : 3;
-        List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton> linhaAtual = new ArrayList<>();
-
-        for (String botao : botoes) {
-            if (linhaAtual.size() >= maxPorLinha) {
-                rows.add(linhaAtual);
-                linhaAtual = new ArrayList<>();
-            }
-            org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton btn =
-                    new org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton();
-            btn.setText(botao);
-            btn.setCallbackData(botao);
-            linhaAtual.add(btn);
-        }
-        if (!linhaAtual.isEmpty()) {
-            rows.add(linhaAtual);
-        }
-        this.teclado = new org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup(rows);
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarTecladoInline(botoes);
     }
 
     /**
@@ -334,32 +286,14 @@ public class Contexto {
      * Responde com botões inline mapeando cada rótulo de botão para um callbackData específico.
      *
      * @param resposta             mensagem de texto a enviar
-     * @param textoParaCallbackData mapa de texto visível -> valor de callback enviado ao bot
+     * @param textoParaCallbackData mapa de texto visível → valor de callback enviado ao bot
      */
     public void responderComBotoesInline(String resposta, Map<String, String> textoParaCallbackData) {
         responder(resposta);
         if (textoParaCallbackData == null || textoParaCallbackData.isEmpty()) {
             return;
         }
-        List<List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton>> rows = new ArrayList<>();
-        int maxPorLinha = textoParaCallbackData.size() <= 4 ? textoParaCallbackData.size() : 2;
-        List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton> linhaAtual = new ArrayList<>();
-
-        for (Map.Entry<String, String> entry : textoParaCallbackData.entrySet()) {
-            if (linhaAtual.size() >= maxPorLinha) {
-                rows.add(linhaAtual);
-                linhaAtual = new ArrayList<>();
-            }
-            org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton btn =
-                    new org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton();
-            btn.setText(entry.getKey());
-            btn.setCallbackData(entry.getValue());
-            linhaAtual.add(btn);
-        }
-        if (!linhaAtual.isEmpty()) {
-            rows.add(linhaAtual);
-        }
-        this.teclado = new org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup(rows);
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarTecladoInline(textoParaCallbackData);
     }
 
     /**
@@ -373,21 +307,7 @@ public class Contexto {
         if (gradeBotoes == null || gradeBotoes.isEmpty()) {
             return;
         }
-        List<List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton>> rows = new ArrayList<>();
-        for (List<BotaoInline> linha : gradeBotoes) {
-            if (linha == null || linha.isEmpty()) continue;
-            List<org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton> row = new ArrayList<>();
-            for (BotaoInline b : linha) {
-                org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton btn =
-                        new org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton();
-                btn.setText(b.texto());
-                if (b.callbackData() != null) btn.setCallbackData(b.callbackData());
-                if (b.url() != null) btn.setUrl(b.url());
-                row.add(btn);
-            }
-            rows.add(row);
-        }
-        this.teclado = new org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup(rows);
+        this.teclado = chat.dobot.bot.telegram.TelegramKeyboardHelper.criarTecladoInlineGrade(gradeBotoes);
     }
 
     // ── CallbackQuery Metadata & Notificações ────────────────────────────────
