@@ -1,5 +1,8 @@
 package chat.dobot.exemplos.telegram;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import chat.dobot.bot.BotaoInline;
 import chat.dobot.bot.Contexto;
 import chat.dobot.bot.DoBotConfig;
@@ -8,9 +11,6 @@ import chat.dobot.bot.annotations.DoBotChat;
 import chat.dobot.bot.annotations.EstadoChat;
 import chat.dobot.bot.service.DoBotService;
 import chat.dobot.bot.telegram.DoBotTelegramApp;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Exemplo de Chatbot Telegram combinando <b>Botões Inline Interativos</b>

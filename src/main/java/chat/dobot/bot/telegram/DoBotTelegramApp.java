@@ -20,6 +20,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -232,21 +233,29 @@ public class DoBotTelegramApp {
         }
 
         try {
-            ConsoleUtil.printYellow(getdoBotAsciiArt());
-            ConsoleUtil.printYellow("DoBotChat Telegram Adapter");
+            ConsoleUtil.printBlue(getdoBotAsciiArt());
+            ConsoleUtil.printBlue("==================================================");
+            ConsoleUtil.printBlue("             DoBot.chat | Telegram                ");
+            ConsoleUtil.printBlue("==================================================");
+            ConsoleUtil.printConsole("");
 
             // Localiza e instancia o primeiro bot anotado com @DoBotChat
+            ConsoleUtil.printYellow("[1/3] Carregando chatbot...");
             DoBot doBot = carregarInstanciaChatbot();
 
             // Inicializa persistência H2 caso haja entidades anotadas com @Entidade
+            ConsoleUtil.printYellow("[2/3] Preparando persistencia...");
             Map<String, DoBotService<Record>> servicos = inicializarPersistencia();
 
-            ConsoleUtil.printConsole("🤖 Iniciando bot Telegram @" + username + "...");
+            ConsoleUtil.printYellow("[3/3] Conectando ao Telegram...");
 
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
             botsApi.registerBot(new TelegramBotAdapter(token, username, doBot, servicos));
 
-            ConsoleUtil.printConsole("✅ Bot Telegram @" + username + " iniciado com sucesso! Aguardando mensagens...");
+            ConsoleUtil.printGreen("");
+            ConsoleUtil.printGreen("Bot online: @" + username);
+            ConsoleUtil.printGreen("Aguardando mensagens...");
+            ConsoleUtil.printGreen("--------------------------------------------------");
         } catch (TelegramApiException e) {
             ConsoleUtil.printErro("Falha ao registrar o bot Telegram!", e);
             throw new DoBotException("Falha ao registrar o bot Telegram: " + e.getMessage(), e);
@@ -281,7 +290,7 @@ public class DoBotTelegramApp {
                 DoBotService<Record> servico = new DoBotService<>(entidade, yormConfig.getYorm());
                 servicosMap.put(entidade.getSimpleName(), servico);
             }
-            ConsoleUtil.printConsole("💾 Banco H2 ativo (porta " + portaH2 + "). Entidades: " +
+            ConsoleUtil.printGreen("[OK] Persistencia pronta | Porta: " + portaH2 + " | Entidades: " +
                     entidades.stream().map(Class::getSimpleName).toList());
         } catch (Exception e) {
             logger.warn("Não foi possível inicializar banco de dados H2 para o Telegram: {}", e.getMessage());
@@ -307,7 +316,7 @@ public class DoBotTelegramApp {
      *                        erro na instância
      */
     DoBot carregarInstanciaChatbot() {
-        ConsoleUtil.printConsole("Carregando chatbot para o Telegram...");
+        ConsoleUtil.printConsole("  Procurando uma classe @DoBotChat...");
 
         // 1. Se uma instância pronta do bot foi informada, usa-a diretamente
         if (botInstance != null) {
@@ -332,7 +341,7 @@ public class DoBotTelegramApp {
                     return instanciarBot(classe);
                 } catch (DoBotException e) {
                     ConsoleUtil.printWarning(e.getMessage());
-                    ConsoleUtil.printConsole("💬❌ Chatbot não inicializado, tentando próximo...");
+                    ConsoleUtil.printWarning("Chatbot nao inicializado; tentando o proximo...");
                 }
             }
         } catch (Exception e) {
@@ -362,12 +371,21 @@ public class DoBotTelegramApp {
         }
         DoBot doBot = new DoBot(annotation.id(), annotation.nome(), annotation.descricao());
         doBot.getConfig().setArmazenarMensagensEmMemoria(false);
-        ConsoleUtil.printConsole("\n💬⚙️ Carregando chatbot '" + annotation.nome() + "'(" + annotation.id() + ")...");
+        String nomeConsole = nomeParaConsole(annotation.nome());
+        ConsoleUtil.printConsole("");
+        ConsoleUtil.printConsole("  Bot encontrado");
+        ConsoleUtil.printConsole("    Nome: " + nomeConsole);
+        ConsoleUtil.printConsole("    ID:   " + annotation.id());
         varrerMetodos(doBot, instancia);
-        ConsoleUtil.printConsole("💬⚙️ Estados: " + doBot.getEstados().toString());
-        ConsoleUtil.printConsole(
-                "💬✅ Chatbot '" + annotation.nome() + "'(" + annotation.id() + ") carregado com sucesso!");
+        ConsoleUtil.printConsole("    Estados: " + doBot.getEstados());
+        ConsoleUtil.printGreen("  [OK] Chatbot carregado com sucesso");
         return doBot;
+    }
+
+    private String nomeParaConsole(String nome) {
+        return Normalizer.normalize(nome, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^\\p{ASCII}]", "");
     }
 
     /**

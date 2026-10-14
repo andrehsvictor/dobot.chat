@@ -57,7 +57,8 @@ public class YormConfig {
         try {
             if (!entidades.isEmpty()) {
                 CriaTabelasUtil.criarTabelas(dataSource, entidades);
-                logger.info("Tabelas criadas com sucesso! Classes mapeadas: {}", Arrays.toString(entidades.toArray()));
+                logger.info("Persistencia pronta | Entidades mapeadas: {}",
+                        Arrays.toString(entidades.toArray()));
             }
         } catch (Exception e) {
             logger.error("Falha na criação de tabelas no banco H2!", e);
