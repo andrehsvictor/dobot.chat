@@ -47,8 +47,8 @@ public class CafeGourmetBot {
     public static void main(String[] args) {
         DoBotTelegramApp.novoBot()
                 .token(System.getenv().getOrDefault("TELEGRAM_BOT_TOKEN",
-                        "8810693769:AAFTE1Fy0n0Rmi0OBKAsv_9bc5sekITRVqw"))
-                .username(System.getenv().getOrDefault("TELEGRAM_BOT_USERNAME", "cafegourmetbot"))
+                        "TELEGRAM_BOT_TOKEN"))
+                .username(System.getenv().getOrDefault("TELEGRAM_BOT_USERNAME", "TELEGRAM_BOT_USERNAME"))
                 .botClass(CafeGourmetBot.class)
                 .portaH2(8082) // Console Web do H2 disponível em http://localhost:8082
                 .ativarExemplos()
@@ -304,18 +304,16 @@ public class CafeGourmetBot {
         ctx.setAlertaCallback("Console Web H2 em http://localhost:8082", false);
         ctx.responderComGradeBotoesInline(
                 "💾 *Banco de Dados H2 em Memória*\n\n" +
-                "O banco de dados H2 está ativo no seu computador:\n\n" +
-                "• *Endereço:* `http://localhost:8082` (abrir no navegador)\n" +
-                "• *JDBC URL:* `jdbc:h2:mem:dobotdb`\n" +
-                "• *Usuário:* `dobot`\n" +
-                "• *Senha:* (em branco)\n\n" +
-                "Tabela mapeada: `ITEMPEDIDO`\n\n" +
-                "Toque abaixo para retornar ao cardápio:",
+                        "O banco de dados H2 está ativo no seu computador:\n\n" +
+                        "• *Endereço:* `http://localhost:8082` (abrir no navegador)\n" +
+                        "• *JDBC URL:* `jdbc:h2:mem:dobotdb`\n" +
+                        "• *Usuário:* `dobot`\n" +
+                        "• *Senha:* (em branco)\n\n" +
+                        "Tabela mapeada: `ITEMPEDIDO`\n\n" +
+                        "Toque abaixo para retornar ao cardápio:",
                 List.of(List.of(
                         BotaoInline.callback("⬅️ Voltar ao Cardápio", "voltar_menu"),
-                        BotaoInline.link("🌐 Docs H2 Database", "https://www.h2database.com")
-                ))
-        );
+                        BotaoInline.link("🌐 Docs H2 Database", "https://www.h2database.com"))));
     }
 
     /**
