@@ -21,7 +21,10 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import chat.dobot.bot.persistance.YormConfig;
+import chat.dobot.bot.utils.AnnotationsUtil;
 
 /**
  * Ponto de entrada para criar um chatbot DoBot integrado ao Telegram via Long
@@ -113,6 +116,31 @@ public class DoBotTelegramApp {
      */
     public DoBotTelegramApp username(String username) {
         this.username = username;
+        return this;
+    }
+
+    private int portaH2 = 8082;
+    private boolean persistenciaAtiva = true;
+
+    /**
+     * Define a porta web do console H2 (padrão: 8082).
+     *
+     * @param portaH2 porta do console H2
+     * @return esta instância (fluent API)
+     */
+    public DoBotTelegramApp portaH2(int portaH2) {
+        this.portaH2 = portaH2;
+        return this;
+    }
+
+    /**
+     * Habilita ou desabilita o suporte a banco de dados H2/Yorm no Telegram.
+     *
+     * @param ativa {@code true} para escanear e mapear entidades automaticamente (padrão: {@code true})
+     * @return esta instância (fluent API)
+     */
+    public DoBotTelegramApp persistencia(boolean ativa) {
+        this.persistenciaAtiva = ativa;
         return this;
     }
 
@@ -210,8 +238,8 @@ public class DoBotTelegramApp {
             // Localiza e instancia o primeiro bot anotado com @DoBotChat
             DoBot doBot = carregarInstanciaChatbot();
 
-            // Sem persistência configurada para o adaptador Telegram por padrão
-            Map<String, DoBotService<Record>> servicos = new HashMap<>();
+            // Inicializa persistência H2 caso haja entidades anotadas com @Entidade
+            Map<String, DoBotService<Record>> servicos = inicializarPersistencia();
 
             ConsoleUtil.printConsole("🤖 Iniciando bot Telegram @" + username + "...");
 
@@ -229,6 +257,37 @@ public class DoBotTelegramApp {
             ConsoleUtil.printErro("Erro inesperado ao iniciar o DoBotTelegramApp!", e);
             throw new DoBotException("Erro inesperado: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Localiza entidades mapeadas com {@code @Entidade} e inicializa os serviços de persistência H2/Yorm.
+     *
+     * @return mapa com os serviços de banco indexados pelo nome simples da classe Record
+     */
+    private Map<String, DoBotService<Record>> inicializarPersistencia() {
+        Map<String, DoBotService<Record>> servicosMap = new HashMap<>();
+        if (!persistenciaAtiva) {
+            return servicosMap;
+        }
+
+        try {
+            List<Class<Record>> entidades = AnnotationsUtil.buscarEntidades();
+            if (entidades.isEmpty()) {
+                return servicosMap;
+            }
+
+            YormConfig yormConfig = new YormConfig(portaH2);
+            for (Class<Record> entidade : entidades) {
+                DoBotService<Record> servico = new DoBotService<>(entidade, yormConfig.getYorm());
+                servicosMap.put(entidade.getSimpleName(), servico);
+            }
+            ConsoleUtil.printConsole("💾 Banco H2 ativo (porta " + portaH2 + "). Entidades: " +
+                    entidades.stream().map(Class::getSimpleName).toList());
+        } catch (Exception e) {
+            logger.warn("Não foi possível inicializar banco de dados H2 para o Telegram: {}", e.getMessage());
+        }
+
+        return servicosMap;
     }
 
     /**

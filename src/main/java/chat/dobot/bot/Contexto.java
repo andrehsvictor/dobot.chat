@@ -37,7 +37,11 @@ public class Contexto {
     }
 
     public void mudarEstado(String estado) {
-        this.estado = estado;
+        this.estado = estado != null ? estado.toLowerCase() : "";
+    }
+
+    public void proximoEstado(String estado) {
+        mudarEstado(estado);
     }
 
     public void responder(String resposta) {

@@ -331,6 +331,15 @@ DoBotTelegramApp.novoBot()
         .start();
 ```
 
+### Exemplos Disponíveis
+
+O pacote `chat.dobot.exemplos.telegram` inclui exemplos prontos para teste:
+
+1. **`CafeGourmetBot`**: Demonstração completa de **botões inline interativos em grade**, callbacks com **toasts e popups modais**, operações CRUD com **banco de dados H2** (`@Entidade record ItemPedido`) e botão com link direto para o console web do H2.
+2. **`AdivinhaNumeroBot`**: Jogo interativo demonstrando estados dinâmicos, controle de tentativas e **isolamento de sessão por usuário**.
+
+---
+
 ## Acessando o Banco de Dados H2
 O DoBot.chat utiliza o H2 como banco de dados em memória por padrão. Você pode acessar o console web do H2 para inspecionar as tabelas e dados armazenados.
 

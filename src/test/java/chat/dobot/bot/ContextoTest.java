@@ -285,6 +285,17 @@ class ContextoTest {
         assertTrue(ctx.isAlertaCallbackShowAlert());
     }
 
+    @Test
+    @DisplayName("mudarEstado e proximoEstado devem normalizar o estado para minúsculo")
+    void mudarEstadoNormalizaParaMinusculo() {
+        Contexto ctx = new Contexto("msg", "main", servicosVazios);
+        ctx.mudarEstado("TratarAcao");
+        assertEquals("trataracao", ctx.getEstado());
+
+        ctx.proximoEstado("OutroEstado");
+        assertEquals("outroestado", ctx.getEstado());
+    }
+
     /** Record auxiliar para os testes de getServico. */
     record ServicoFake(int id) {}
 }
