@@ -259,6 +259,7 @@ class TelegramBotAdapter extends TelegramLongPollingBot {
         SendMessage mensagem = new SendMessage();
         mensagem.setChatId(String.valueOf(chatId));
         mensagem.setText(texto);
+        mensagem.setParseMode("Markdown");
         if (replyMarkup != null) {
             mensagem.setReplyMarkup(replyMarkup);
         }

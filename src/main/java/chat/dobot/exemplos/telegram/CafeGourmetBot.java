@@ -14,7 +14,7 @@ import java.util.List;
 
 /**
  * Exemplo de Chatbot Telegram combinando <b>Botões Inline Interativos</b>
- * e <b>Banco de Dados H2</b> em memória.
+ * e persistência dos pedidos.
  *
  * <p>
  * Recursos demonstrados:
@@ -23,9 +23,7 @@ import java.util.List;
  * ({@link Contexto#responderComGradeBotoesInline})</li>
  * <li>Ações via callback com feedback instantâneo (toasts e popups modais via
  * {@link Contexto#setAlertaCallback})</li>
- * <li>Botão com link externo apontando para o console web do banco H2
- * ({@link BotaoInline#link})</li>
- * <li>Operações CRUD completas (inserir, listar e deletar) no banco H2 via
+ * <li>Operações CRUD completas (inserir, listar e deletar) via
  * {@link DoBotService}</li>
  * </ul>
  *
@@ -41,7 +39,7 @@ import java.util.List;
  * }
  * }</pre>
  */
-@DoBotChat(id = "cafeGourmet", nome = "☕ Café Gourmet DoBot", descricao = "Bot de cafeteria com botões inline e banco de dados H2")
+@DoBotChat(id = "cafeGourmet", nome = "☕ Café Gourmet DoBot", descricao = "Bot de cafeteria com botões inline e persistência de pedidos")
 public class CafeGourmetBot {
 
     public static void main(String[] args) {
@@ -50,7 +48,7 @@ public class CafeGourmetBot {
                         "TELEGRAM_BOT_TOKEN"))
                 .username(System.getenv().getOrDefault("TELEGRAM_BOT_USERNAME", "TELEGRAM_BOT_USERNAME"))
                 .botClass(CafeGourmetBot.class)
-                .portaH2(8082) // Console Web do H2 disponível em http://localhost:8082
+                .portaH2(8082)
                 .ativarExemplos()
                 .start();
     }
@@ -60,7 +58,7 @@ public class CafeGourmetBot {
         config.setMensagemInicial(
                 "☕ *Bem-vindo ao Café Gourmet DoBot!*\n\n" +
                         "Toque nos botões inline abaixo para montar seu pedido.\n" +
-                        "Cada escolha é salva diretamente no banco de dados H2!");
+                        "Cada escolha é salva para acompanhar o seu pedido!");
     }
 
     /**
@@ -93,25 +91,25 @@ public class CafeGourmetBot {
             return;
         }
 
-        // 1. Adicionar itens ao pedido no H2
+        // 1. Adicionar itens ao pedido
         if (acao.startsWith("add_")) {
             processarAdicaoItem(ctx, servico, acao);
             return;
         }
 
-        // 2. Visualizar pedidos salvos no H2
+        // 2. Visualizar pedidos salvos
         if ("ver_pedidos".equalsIgnoreCase(acao)) {
             exibirPedidosSalvos(ctx, servico);
             return;
         }
 
-        // 3. Remover um item específico por ID do banco H2
+        // 3. Remover um item específico por ID
         if (acao.startsWith("del_")) {
             processarRemocaoItem(ctx, servico, acao);
             return;
         }
 
-        // 4. Limpar todos os pedidos do banco H2
+        // 4. Limpar todos os pedidos
         if ("limpar".equalsIgnoreCase(acao)) {
             limparTodosPedidos(ctx, servico);
             return;
@@ -123,13 +121,7 @@ public class CafeGourmetBot {
             return;
         }
 
-        // 6. Informações sobre o banco H2
-        if ("info_h2".equalsIgnoreCase(acao)) {
-            exibirInfoH2(ctx);
-            return;
-        }
-
-        // 7. Voltar ao menu
+        // 6. Voltar ao menu
         if ("voltar_menu".equalsIgnoreCase(acao)) {
             menu(ctx);
             return;
@@ -152,21 +144,21 @@ public class CafeGourmetBot {
         };
 
         if (itemParaSalvar != null) {
-            // Salva o registro no banco de dados H2
+            // Salva o registro
             if (servico != null) {
                 try {
                     servico.salvar(itemParaSalvar);
                 } catch (Exception e) {
-                    ctx.responder("Erro ao salvar no banco de dados H2: " + e.getMessage());
+                    ctx.responder("Erro ao salvar o item: " + e.getMessage());
                     return;
                 }
             }
 
             // Notificação rápida (toast) no Telegram
-            ctx.setAlertaCallback("✅ " + itemParaSalvar.item() + " adicionado ao banco H2!", false);
+            ctx.setAlertaCallback("✅ " + itemParaSalvar.item() + " adicionado ao pedido!", false);
 
             ctx.responderComGradeBotoesInline(
-                    "Item registrado no banco de dados H2:\n" +
+                    "Item registrado no pedido:\n" +
                             "• *" + itemParaSalvar.item() + "* — R$ " + String.format("%.2f", itemParaSalvar.preco())
                             + "\n\n" +
                             "Deseja adicionar mais algum item?",
@@ -179,17 +171,17 @@ public class CafeGourmetBot {
 
         if (pedidos.isEmpty()) {
             if (ctx.getAlertaCallbackTexto() == null) {
-                ctx.setAlertaCallback("📭 Nenhum pedido registrado no H2!", false);
+                ctx.setAlertaCallback("📭 Nenhum pedido registrado!", false);
             }
             ctx.responderComGradeBotoesInline(
-                    "Seu carrinho está vazio no banco de dados H2.\nEscolha algum item do cardápio:",
+                    "Seu carrinho está vazio.\nEscolha algum item do cardápio:",
                     criarGradeMenuPrincipal());
             return;
         }
 
         double total = 0.0;
         StringBuilder sb = new StringBuilder();
-        sb.append("📋 *Seus Pedidos no Banco H2:*\n\n");
+        sb.append("📋 *Seus Pedidos:*\n\n");
 
         List<List<BotaoInline>> gradeRemocao = new ArrayList<>();
 
@@ -198,22 +190,21 @@ public class CafeGourmetBot {
             sb.append("• `#").append(p.id()).append("` — ").append(p.item())
                     .append(" (R$ ").append(String.format("%.2f", p.preco())).append(")\n");
 
-            // Botão individual para deletar este item específico do banco H2
+            // Botão individual para deletar este item específico
             gradeRemocao.add(List.of(
                     BotaoInline.callback("❌ Remover #" + p.id() + " (" + p.item() + ")", "del_" + p.id())));
         }
 
         sb.append("\n━━━━━━━━━━━━━━━━━━━━━━\n");
         sb.append("💰 *Total Geral:* R$ ").append(String.format("%.2f", total));
-        sb.append(" (").append(pedidos.size()).append(" itens no H2)");
+        sb.append(" (").append(pedidos.size()).append(" itens)");
 
         // Botões de ação para o carrinho
         gradeRemocao.add(List.of(
                 BotaoInline.callback("💳 Finalizar Conta", "finalizar"),
                 BotaoInline.callback("➕ Mais Itens", "voltar_menu")));
         gradeRemocao.add(List.of(
-                BotaoInline.callback("🗑️ Limpar Todos", "limpar"),
-                BotaoInline.callback("ℹ️ Info Console H2", "info_h2")));
+                BotaoInline.callback("🗑️ Limpar Todos", "limpar")));
 
         ctx.responderComGradeBotoesInline(sb.toString(), gradeRemocao);
     }
@@ -222,10 +213,10 @@ public class CafeGourmetBot {
         try {
             int id = Integer.parseInt(acao.replace("del_", ""));
             deletarPedido(servico, id);
-            ctx.setAlertaCallback("🗑️ Item #" + id + " removido do banco H2!", false);
+            ctx.setAlertaCallback("🗑️ Item #" + id + " removido do pedido!", false);
             exibirPedidosSalvos(ctx, servico);
         } catch (Exception e) {
-            ctx.responder("Erro ao deletar item do banco H2: " + e.getMessage());
+            ctx.responder("Erro ao remover item: " + e.getMessage());
             menu(ctx);
         }
     }
@@ -236,9 +227,9 @@ public class CafeGourmetBot {
             deletarPedido(servico, p.id());
         }
         // Alerta popup modal no Telegram
-        ctx.setAlertaCallback("🧹 Todos os itens foram removidos do banco H2!", true);
+        ctx.setAlertaCallback("🧹 Todos os itens foram removidos!", true);
         ctx.responderComGradeBotoesInline(
-                "O banco de dados H2 foi esvaziado com sucesso.\nQue tal iniciar um novo pedido?",
+                "O pedido foi limpo com sucesso.\nQue tal iniciar um novo pedido?",
                 criarGradeMenuPrincipal());
     }
 
@@ -246,7 +237,7 @@ public class CafeGourmetBot {
         List<ItemPedido> pedidos = buscarPedidos(servico);
 
         if (pedidos.isEmpty()) {
-            ctx.setAlertaCallback("⚠️ Seu carrinho está vazio no H2!", true);
+            ctx.setAlertaCallback("⚠️ Seu carrinho está vazio!", true);
             return;
         }
 
@@ -298,25 +289,6 @@ public class CafeGourmetBot {
     }
 
     /**
-     * Exibe informações sobre o banco de dados H2 e como acessá-lo localmente.
-     */
-    private void exibirInfoH2(Contexto ctx) {
-        ctx.setAlertaCallback("Console Web H2 em http://localhost:8082", false);
-        ctx.responderComGradeBotoesInline(
-                "💾 *Banco de Dados H2 em Memória*\n\n" +
-                        "O banco de dados H2 está ativo no seu computador:\n\n" +
-                        "• *Endereço:* `http://localhost:8082` (abrir no navegador)\n" +
-                        "• *JDBC URL:* `jdbc:h2:mem:dobotdb`\n" +
-                        "• *Usuário:* `dobot`\n" +
-                        "• *Senha:* (em branco)\n\n" +
-                        "Tabela mapeada: `ITEMPEDIDO`\n\n" +
-                        "Toque abaixo para retornar ao cardápio:",
-                List.of(List.of(
-                        BotaoInline.callback("⬅️ Voltar ao Cardápio", "voltar_menu"),
-                        BotaoInline.link("🌐 Docs H2 Database", "https://www.h2database.com"))));
-    }
-
-    /**
      * Constrói a grade de botões inline do menu principal.
      */
     private List<List<BotaoInline>> criarGradeMenuPrincipal() {
@@ -329,14 +301,12 @@ public class CafeGourmetBot {
                 List.of(
                         BotaoInline.callback("🍰 Cheesecake (R$ 15,00)", "add_cheesecake"),
                         BotaoInline.callback("🧃 Suco Laranja (R$ 8,00)", "add_suco")),
-                // Linha 3: Gerenciamento do pedido (banco H2)
+                // Linha 3: Gerenciamento do pedido
                 List.of(
-                        BotaoInline.callback("📋 Ver Pedidos (H2)", "ver_pedidos"),
+                        BotaoInline.callback("📋 Ver Pedidos", "ver_pedidos"),
                         BotaoInline.callback("💳 Pagar Conta", "finalizar")),
-                // Linha 4: Limpeza, Info H2 e Link oficial HTTPS
+                // Linha 4: Limpeza do pedido
                 List.of(
-                        BotaoInline.callback("🗑️ Limpar Pedidos", "limpar"),
-                        BotaoInline.callback("ℹ️ Info Banco H2", "info_h2"),
-                        BotaoInline.link("🌐 Docs H2", "https://www.h2database.com")));
+                        BotaoInline.callback("🗑️ Limpar Pedidos", "limpar")));
     }
 }

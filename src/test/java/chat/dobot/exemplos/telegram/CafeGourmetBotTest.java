@@ -53,8 +53,8 @@ class CafeGourmetBotTest {
     }
 
     @Test
-    @DisplayName("deve adicionar item ao banco H2 e emitir toast de confirmação")
-    void deveAdicionarItemAoBancoH2() throws Exception {
+    @DisplayName("deve adicionar item ao pedido e emitir toast de confirmação")
+    void deveAdicionarItemAoPedido() throws Exception {
         Contexto ctx = new Contexto("", "tratarAcao", servicos, new HashMap<>());
         ctx.setCallbackQueryId("query123");
         ctx.setCallbackData("add_espresso");
@@ -69,8 +69,8 @@ class CafeGourmetBotTest {
     }
 
     @Test
-    @DisplayName("deve listar pedidos do banco H2 com botões de remoção individual")
-    void deveListarPedidosDoBancoH2() throws Exception {
+    @DisplayName("deve listar pedidos com botões de remoção individual")
+    void deveListarPedidos() throws Exception {
         List<ItemPedido> pedidos = List.of(
                 new ItemPedido(1, "☕ Espresso", 6.00, "Café"),
                 new ItemPedido(2, "🥐 Croissant", 12.00, "Lanche")
@@ -91,7 +91,7 @@ class CafeGourmetBotTest {
     }
 
     @Test
-    @DisplayName("deve remover item por ID do banco H2")
+    @DisplayName("deve remover item por ID")
     void deveRemoverItemPorId() throws Exception {
         Contexto ctx = new Contexto("", "tratarAcao", servicos, new HashMap<>());
         ctx.setCallbackData("del_1");
@@ -104,7 +104,7 @@ class CafeGourmetBotTest {
     }
 
     @Test
-    @DisplayName("deve limpar todos os pedidos do banco H2 e disparar modal")
+    @DisplayName("deve limpar todos os pedidos e disparar modal")
     void deveLimparTodosPedidos() throws Exception {
         List<ItemPedido> pedidos = List.of(
                 new ItemPedido(1, "☕ Espresso", 6.00, "Café"),
@@ -124,7 +124,7 @@ class CafeGourmetBotTest {
     }
 
     @Test
-    @DisplayName("deve finalizar pedido calculando total e esvaziando o banco H2")
+    @DisplayName("deve finalizar pedido calculando total e esvaziando os itens")
     void deveFinalizarPedidoComSucesso() throws Exception {
         List<ItemPedido> pedidos = List.of(
                 new ItemPedido(1, "☕ Espresso", 6.00, "Café"),
