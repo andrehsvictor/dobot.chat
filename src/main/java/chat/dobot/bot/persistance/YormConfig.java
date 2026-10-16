@@ -1,5 +1,6 @@
 package chat.dobot.bot.persistance;
 
+import chat.dobot.bot.DoBotException;
 import chat.dobot.bot.utils.AnnotationsUtil;
 import chat.dobot.bot.utils.CriaTabelasUtil;
 import com.zaxxer.hikari.HikariConfig;
@@ -32,10 +33,9 @@ public class YormConfig {
     private void start(int portaH2) {
         try {
             Server.createWebServer("-webPort", String.valueOf(portaH2)).start();
-            logger.debug("Banco de dados H2 iniciado com sucesso.");
+            logger.debug("Banco de dados H2 iniciado com sucesso na porta {}.", portaH2);
         } catch (SQLException e) {
-            logger.error("Falha ao iniciar o banco de dados H2!", e);
-            System.exit(1);
+            logger.warn("Não foi possível iniciar o console web H2 na porta {} (talvez já esteja em uso): {}", portaH2, e.getMessage());
         }
 
         HikariConfig config = new HikariConfig();
@@ -57,11 +57,12 @@ public class YormConfig {
         try {
             if (!entidades.isEmpty()) {
                 CriaTabelasUtil.criarTabelas(dataSource, entidades);
-                logger.info("Tabelas criadas com sucesso! Classes mapeadas: {}", Arrays.toString(entidades.toArray()));
+                logger.info("Persistencia pronta | Entidades mapeadas: {}",
+                        Arrays.toString(entidades.toArray()));
             }
         } catch (Exception e) {
-            logger.error("Falha na criação de tabelas no banco!", e);
-            System.exit(1);
+            logger.error("Falha na criação de tabelas no banco H2!", e);
+            throw new DoBotException("Falha na criação de tabelas no banco H2: " + e.getMessage(), e);
         }
     }
 

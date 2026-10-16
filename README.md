@@ -28,16 +28,26 @@ O DoBot depende de poucas bibliotecas, focando na simplicidade e funcionalidade.
 Para utilizar o DoBot em seu projeto, siga as instruções abaixo:
 
 ### Dependência Maven
-Adicione a seguinte dependência no seu arquivo pom.xml:
+Adicione a dependência do DoBot.chat no seu arquivo `pom.xml`:
 
 ```xml
 <dependency>
    <groupId>chat.dobot.bot</groupId>
    <artifactId>DoBot.chat</artifactId>
    <version>1.1.1</version>
-   <type>pom</type>
 </dependency>
 ```
+
+Se você for utilizar o canal **Telegram**, adicione também a biblioteca oficial do Telegram (ela é opcional no core para manter a biblioteca leve no modo web):
+
+```xml
+<dependency>
+   <groupId>org.telegram</groupId>
+   <artifactId>telegrambots</artifactId>
+   <version>6.9.7.1</version>
+</dependency>
+```
+
 Acrescente o repositório Maven:
 ```xml
 <repositories>
@@ -143,8 +153,8 @@ Ou utilizando as portas padrão:
 meubot.start();
 ```
 
-## Exemplo de Main
-Aqui está um exemplo básico de como inicializar o chatbot:
+## Exemplo de Main (Canal Web)
+Aqui está um exemplo básico de como inicializar o chatbot na interface Web:
 ```java
 import chat.dobot.bot.*;
 import chat.dobot.bot.annotations.Config;
@@ -157,7 +167,7 @@ public class HelloWorldBot {
    public static void main(String[] args) {
       DoBotChatApp meubot = DoBotChatApp.novoBot();
       meubot.ativarExemplos();
-      meubot.start(8083,8084);
+      meubot.start(8083, 8084);
    }
 
    @Config
@@ -168,12 +178,167 @@ public class HelloWorldBot {
    @EstadoChat(inicial = true)
    public void aloMundo(Contexto chat) {
       String msg = chat.getMensagemUsuario();
-      chat.responder("Alô "+msg);
+      chat.responder("Alô " + msg);
    }
 
 }
-
 ```
+
+---
+
+## Integração com Telegram
+
+O DoBot.chat oferece suporte completo à **API de Bots do Telegram** via Long Polling através da classe `DoBotTelegramApp`. Você reutiliza as mesmas anotações (`@DoBotChat`, `@EstadoChat`, `@Config`) e o objeto `Contexto`, aproveitando recursos específicos da plataforma:
+
+- **Isolamento de sessão por usuário**: Cada usuário (`chatId`) possui seu próprio estado de conversa e dados independentes.
+- **Teclados interativos**: Suporte a botões no teclado do app (`ReplyKeyboardMarkup`) e botões inline sob as mensagens (`InlineKeyboardMarkup`).
+- **Callbacks e alertas inline**: Captura de cliques em botões inline e envio de popups modais ou notificações discretas (toasts).
+- **Comando `/start`**: Reinicia a sessão do usuário de forma automática para o estado inicial.
+- **Injeção de dependências**: Permite passar instâncias pré-configuradas via `.bot(instancia)`.
+
+### Exemplo de Inicialização no Telegram
+
+```java
+import chat.dobot.bot.Contexto;
+import chat.dobot.bot.DoBotConfig;
+import chat.dobot.bot.annotations.Config;
+import chat.dobot.bot.annotations.DoBotChat;
+import chat.dobot.bot.annotations.EstadoChat;
+import chat.dobot.bot.telegram.DoBotTelegramApp;
+
+@DoBotChat(id = "meuTelegramBot", nome = "Meu Bot no Telegram")
+public class MeuTelegramBot {
+
+    public static void main(String[] args) {
+        DoBotTelegramApp.novoBot()
+                .token("SEU_TOKEN_DO_BOTFATHER")
+                .username("seu_bot_username")
+                .botClass(MeuTelegramBot.class) // ou .bot(new MeuTelegramBot())
+                .start();
+    }
+
+    @Config
+    public void config(DoBotConfig config) {
+        config.setMensagemInicial("👋 Olá! Bem-vindo ao bot do Telegram!");
+    }
+
+    @EstadoChat(inicial = true)
+    public void menu(Contexto ctx) {
+        ctx.responderComBotoes("Escolha uma opção:", "ℹ️ Informações", "📞 Suporte", "🎲 Jogar");
+        ctx.proximoEstado("tratarMenu");
+    }
+
+    @EstadoChat
+    public void tratarMenu(Contexto ctx) {
+        String msg = ctx.getMensagemUsuario();
+        if ("ℹ️ Informações".equalsIgnoreCase(msg)) {
+            ctx.responder("Somos um chatbot construído com a biblioteca DoBot.chat!");
+            ctx.proximoEstado("menu");
+        } else if ("📞 Suporte".equalsIgnoreCase(msg)) {
+            ctx.responder("Envie sua mensagem que nossa equipe responderá em breve.");
+        } else {
+            ctx.responder("Opção não reconhecida. Tente novamente.");
+            ctx.proximoEstado("menu");
+        }
+    }
+}
+```
+
+### Recursos Avançados no Telegram via `Contexto`
+
+#### 1. Teclados de Resposta (Reply Keyboard)
+Exibe opções clicáveis que substituem o teclado de texto do usuário:
+
+```java
+// Botões simples em linha
+ctx.responderComBotoes("Selecione uma dificuldade:", "Fácil", "Médio", "Difícil");
+
+// Matriz de botões (múltiplas linhas)
+ctx.responderComBotoesLinhas("Escolha um número:", List.of(
+    List.of("1", "2", "3"),
+    List.of("4", "5", "6")
+));
+
+// Remover o teclado da tela
+ctx.removerTeclado("Teclado fechado com sucesso.");
+```
+
+#### 2. Botões Inline (Inline Keyboard)
+Exibe botões fixados diretamente abaixo da mensagem enviada:
+
+```java
+// Botões inline simples (texto do botão = callback data)
+ctx.responderComBotoesInline("Deseja confirmar?", "Sim", "Não");
+
+// Botões inline com callback data customizado
+ctx.responderComBotoesInline("Avalie nosso atendimento:", Map.of(
+    "⭐ Ruim", "nota_1",
+    "⭐⭐ Regular", "nota_2",
+    "⭐⭐⭐ Excelente", "nota_3"
+));
+
+// Grade de botões com links externos ou callbacks avançados
+ctx.responderComGradeBotoesInline("Opções:", List.of(
+    List.of(BotaoInline.callback("Próxima etapa ➡️", "etapa_2")),
+    List.of(BotaoInline.link("🌐 Visitar Documentação", "https://dobot.chat"))
+));
+```
+
+#### 3. Callbacks e Alertas (Popup / Toast)
+Quando o usuário clica em um botão inline, você pode capturar a interação e exibir alertas:
+
+```java
+@EstadoChat
+public void tratarClique(Contexto ctx) {
+    if (ctx.isCallbackQuery()) {
+        String callbackData = ctx.getCallbackData();
+        // Feedback visual imediato:
+        ctx.setAlertaCallback("Você selecionou: " + callbackData, false); // false = toast no topo; true = popup modal
+        ctx.responder("Processando sua escolha...");
+    }
+}
+```
+
+#### 4. Gerenciamento de Sessão por Usuário
+Diferente da web, o Telegram suporta múltiplos usuários simultâneos conversando com o mesmo bot. O `Contexto` fornece métodos isolados por `chatId`:
+
+```java
+// Armazenar dados na sessão do usuário atual
+ctx.setDado("pontuacao", 100);
+ctx.setDado("nome", "Maria");
+
+// Recuperar dados tipados
+Integer pontos = ctx.getDado("pontuacao", Integer.class);
+String nome = ctx.getDado("nome", String.class);
+
+// Verificar existência ou remover
+if (ctx.temDado("pontuacao")) {
+    ctx.removerDado("pontuacao");
+}
+```
+
+#### 5. Injeção de Dependências
+Se o seu chatbot precisa de serviços injetados (Spring, Micronaut, construtores customizados), use o método `.bot(instancia)`:
+
+```java
+MeuServico servico = new MeuServico();
+MeuTelegramBot bot = new MeuTelegramBot(servico);
+
+DoBotTelegramApp.novoBot()
+        .token("TOKEN")
+        .username("username")
+        .bot(bot)
+        .start();
+```
+
+### Exemplos Disponíveis
+
+O pacote `chat.dobot.exemplos.telegram` inclui exemplos prontos para teste:
+
+1. **`CafeGourmetBot`**: Demonstração completa de **botões inline interativos em grade**, callbacks com **toasts e popups modais**, operações CRUD com **banco de dados H2** (`@Entidade record ItemPedido`) e botão com link direto para o console web do H2.
+2. **`AdivinhaNumeroBot`**: Jogo interativo demonstrando estados dinâmicos, controle de tentativas e **isolamento de sessão por usuário**.
+
+---
 
 ## Acessando o Banco de Dados H2
 O DoBot.chat utiliza o H2 como banco de dados em memória por padrão. Você pode acessar o console web do H2 para inspecionar as tabelas e dados armazenados.
