@@ -58,14 +58,12 @@ public class TestandoEstados {
             ctx.responder("Digite o nome da tarefa:");
             ctx.mudarEstado("receberTarefa");
         } else if (LISTAR.equals(opcao)) {
-            listarTarefas(ctx);
+            ctx.mudarEstado("listarTarefas");
         } else if (LIMPAR.equals(opcao)) {
-            ctx.removerDado(TAREFAS);
-            ctx.removerTeclado("Tarefas limpas com sucesso!");
-            menu(ctx);
+            ctx.mudarEstado("limparTarefas");
         } else {
             ctx.responder("Não entendi essa opção. Escolha um dos botões do menu.");
-            menu(ctx);
+            ctx.mudarEstado("menu");
         }
     }
 
@@ -87,7 +85,9 @@ public class TestandoEstados {
         menu(ctx);
     }
 
-    private void listarTarefas(Contexto ctx) {
+    // Estado que lista as tarefas cadastradas
+    @EstadoChat(estado = "listarTarefas")
+    public void listarTarefas(Contexto ctx) {
         List<String> tarefas = obterTarefas(ctx);
         if (tarefas.isEmpty()) {
             ctx.responder("Você ainda não tem tarefas cadastradas.");
@@ -98,7 +98,14 @@ public class TestandoEstados {
             }
             ctx.responder(mensagem.toString().trim());
         }
-        menu(ctx);
+        ctx.mudarEstado("menu");
+    }
+
+    @EstadoChat(estado = "limparTarefas")
+    public void limparTarefas(Contexto ctx) {
+        ctx.removerDado(TAREFAS);
+        ctx.responder("Todas as tarefas foram limpas.");
+        ctx.mudarEstado("menu");
     }
 
     @SuppressWarnings("unchecked")
