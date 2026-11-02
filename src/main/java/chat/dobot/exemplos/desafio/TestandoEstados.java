@@ -21,7 +21,7 @@ public class TestandoEstados {
 
     public static void main(String[] args) {
         DoBotTelegramApp.novoBot()
-                .token("TOKEN_TELEGRAM")
+                .token("TELEGRAM_TOKEN")
                 .username("USERNAME_BOT")
                 .botClass(TestandoEstados.class)
                 .start();
@@ -58,12 +58,12 @@ public class TestandoEstados {
             ctx.responder("Digite o nome da tarefa:");
             ctx.mudarEstado("receberTarefa");
         } else if (LISTAR.equals(opcao)) {
-            ctx.mudarEstado("listarTarefas");
+            listarTarefas(ctx);
         } else if (LIMPAR.equals(opcao)) {
-            ctx.mudarEstado("limparTarefas");
+            limparTarefas(ctx);
         } else {
             ctx.responder("Não entendi essa opção. Escolha um dos botões do menu.");
-            ctx.mudarEstado("menu");
+            menu(ctx);
         }
     }
 
@@ -85,9 +85,7 @@ public class TestandoEstados {
         menu(ctx);
     }
 
-    // Estado que lista as tarefas cadastradas
-    @EstadoChat(estado = "listarTarefas")
-    public void listarTarefas(Contexto ctx) {
+    private void listarTarefas(Contexto ctx) {
         List<String> tarefas = obterTarefas(ctx);
         if (tarefas.isEmpty()) {
             ctx.responder("Você ainda não tem tarefas cadastradas.");
@@ -98,14 +96,13 @@ public class TestandoEstados {
             }
             ctx.responder(mensagem.toString().trim());
         }
-        ctx.mudarEstado("menu");
+        menu(ctx);
     }
 
-    @EstadoChat(estado = "limparTarefas")
-    public void limparTarefas(Contexto ctx) {
+    private void limparTarefas(Contexto ctx) {
         ctx.removerDado(TAREFAS);
         ctx.responder("Todas as tarefas foram limpas.");
-        ctx.mudarEstado("menu");
+        menu(ctx);
     }
 
     @SuppressWarnings("unchecked")
