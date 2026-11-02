@@ -72,7 +72,7 @@ public class TestandoEstados {
     public void receberTarefa(Contexto ctx) {
         String tarefa = ctx.getMensagemUsuario() == null
                 ? ""
-                : ctx.getMensagemUsuario().trim();
+                : ctx.getMensagemUsuario().trim(); // Pega a mensagem do usuário e remove espaços em branco no início e no fim
 
         if (tarefa.isEmpty()) {
             ctx.responder("A tarefa não pode ficar vazia. Digite um nome:");
